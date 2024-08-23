@@ -25,19 +25,19 @@ which can only be executed in an http**s** environment
 
 So to easily setup a test http**s** server run these scripts: 
 
-Create `test/server.pem` file
+1. Create `test/server.pem` file
 
 ```bash
 openssl req -new -x509 -keyout test/server.pem -out test/server.pem -days 365 -nodes
 ```
 
-Run the server:
+2. Run the server:
 
 ```python
 python3 test/server.py
 ```
 
-Then open browser to this link: 
+3. Open browser to this link: 
 
 https://127.0.0.1:8008/
 
