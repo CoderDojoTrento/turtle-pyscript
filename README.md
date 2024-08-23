@@ -49,6 +49,8 @@ It will warn you the certificate is not signed, just click proceed.
 
 ## Technical stuff
 
+## Pyscript and pyodide
+
 To interface between the browser and Python interpreter we're using Pyscript, which in this case runs pyodide a WASM port. 
 
 Note there is no transcompilation to Javascript, the python code runs entirely in a true CPython environment.
@@ -64,6 +66,14 @@ As graphical display we use a native `<svg>` element in the browser. This has th
 
 Typically for videogames you would choose `<canvas>`, as svg is slower for videogames but 
 since lib is thought for educational purposes svg is sufficient.
+
+## File paths
+
+Pyscript needs a way to find your python files.
+
+If you deploy to a server with a subpath you have to set PATH [template](https://docs.pyscript.net/2024.8.2/user-guide/configuration/#files) in accordingly in [pyscript.json](pyscript.json)
+
+For example, normally the `PATH` would be just `/` but in the demo https://coderdojotrento.github.io/turtle-pyscript/  the `PATH` must be set to  `/turtle-pyscript`
 
 ## Credits and inspiration
 
