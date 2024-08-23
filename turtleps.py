@@ -7,6 +7,12 @@ https://github.com/TranscryptOrg/Transcrypt/blob/master/transcrypt/modules/turtl
 NOTE: YOU DON'T NEED TRANSCRIPT, WE EXECUTE IT IN PYSCRIPT
 """
 
+# not importing anything from turtle as it's disabled in pyodide
+
+class TurtleGraphicsError(Exception):
+    """Some TurtleGraphics Error
+    """ 
+
 from js import (
     document,
     window
@@ -26,25 +32,236 @@ _debug = True
 #def abs (vec2D):
 #    return Math.sqrt (vec2D [0] * vec2D [0] + vec2D [1] * vec2D [1])
 
+
+_CFG = {"width" : 0.5,               # Screen
+        "height" : 0.75,
+        "canvwidth" : 400,
+        "canvheight": 300,
+        "leftright": None,
+        "topbottom": None,
+        "mode": "standard",          # TurtleScreen
+        "colormode": 1.0,
+        "delay": 10,
+        "undobuffersize": 1000,      # RawTurtle
+        "shape": "classic",
+        "pencolor" : "black",
+        "fillcolor" : "black",
+        "resizemode" : "noresize",
+        "visible" : True,
+        "language": "english",        # docstrings
+        "exampleturtle": "turtle",
+        "examplescreen": "screen",
+        "title": "Python Turtle Graphics",
+        "using_IDLE": False
+       }
+
 _ns = 'http://www.w3.org/2000/svg'
 _svg = document.createElementNS (_ns, 'svg')
+
+_defs = document.createElementNS (_ns, 'defs')
+_defs.setAttributeNS(None, 'id', 'defs')
+_svg.appendChild(_defs)
+
 
 _defaultElement = document.getElementById ('__turtlegraph__')
 if not _defaultElement:
     _defaultElement = document.body
 _defaultElement.appendChild (_svg)
 
+
 _width = None
 _height = None
 _offset = None
+
+
+class Shape(object):
+    """Data structure modeling shapes.
+
+    attribute _type is one of "polygon", "image", "compound"
+    attribute _data is - depending on _type a poygon-tuple,
+    an image or a list constructed using the addcomponent method.
+    """
+    
+    def __init__(self, type_, data=None):
+        self._type = type_
+        if type_ == "polygon":
+            if isinstance(data, list):
+                data = tuple(data)
+        elif type_ == "image":
+            if not data:
+                raise ValueError("CDTN: Missing image data!")
+            #CDTN commented, expect svg node
+            #if isinstance(data, str):
+                #if data.lower().endswith(".gif") and os.path.isfile(data):
+                #   data = TurtleScreen._image(data)
+            
+                # else data assumed to be PhotoImage  # CDTN ??
+        elif type_ == "compound":
+            data = []
+        else:
+            raise TurtleGraphicsError("There is no shape type %s" % type_)
+        self._data = data
+
+    def addcomponent(self, poly, fill, outline=None):
+        """Add component to a shape of type compound.
+
+        Arguments: poly is a polygon, i. e. a tuple of number pairs.
+        fill is the fillcolor of the component,
+        outline is the outline color of the component.
+
+        call (for a Shapeobject namend s):
+        --   s.addcomponent(((0,0), (10,10), (-10,10)), "red", "blue")
+
+        Example:
+        >>> poly = ((0,0),(10,-5),(0,10),(-10,-5))
+        >>> s = Shape("compound")
+        >>> s.addcomponent(poly, "red", "blue")
+        >>> # .. add more components and then use register_shape()
+        """
+        if self._type != "compound":
+            raise TurtleGraphicsError("Cannot add component to %s Shape"
+                                                                % self._type)
+        if outline is None:
+            outline = fill
+        self._data.append([poly, fill, outline])
 
 
 class Screen:
     def __init__(self):
         print("CDTN: Initializing screen...")
         self.svg = _svg
+        self._shapes = []
+        
+        #self.canvwidth = w
+        #self.canvheight = h
+        #self.xscale = self.yscale = 1.0
 
-    def register_shape(name, shape=None):
+        self._shapes = {
+                   "arrow" : Shape("polygon", ((-10,0), (10,0), (0,10))),
+                  "turtle" : Shape("polygon", ((0,16), (-2,14), (-1,10), (-4,7),
+                              (-7,9), (-9,8), (-6,5), (-7,1), (-5,-3), (-8,-6),
+                              (-6,-8), (-4,-5), (0,-7), (4,-5), (6,-8), (8,-6),
+                              (5,-3), (7,1), (6,5), (9,8), (7,9), (4,7), (1,10),
+                              (2,14))),
+                  "circle" : Shape("polygon", ((10,0), (9.51,3.09), (8.09,5.88),
+                              (5.88,8.09), (3.09,9.51), (0,10), (-3.09,9.51),
+                              (-5.88,8.09), (-8.09,5.88), (-9.51,3.09), (-10,0),
+                              (-9.51,-3.09), (-8.09,-5.88), (-5.88,-8.09),
+                              (-3.09,-9.51), (-0.00,-10.00), (3.09,-9.51),
+                              (5.88,-8.09), (8.09,-5.88), (9.51,-3.09))),
+                  "square" : Shape("polygon", ((10,-10), (10,10), (-10,10),
+                              (-10,-10))),
+                "triangle" : Shape("polygon", ((10,-5.77), (0,11.55),
+                              (-10,-5.77))),
+                  "classic": Shape("polygon", ((0,0),(-5,-9),(0,-7),(5,-9))),
+                   #CDTN not supported "blank" : Shape("image", self._blankimage())
+                  }
+
+        self._bgpics = {"nopic" : ""}
+
+        #self._mode = mode
+        #self._delayvalue = delay
+        #self._colormode = _CFG["colormode"]
+        #self._keys = []
+        self.clear()
+        #if sys.platform == 'darwin':
+            # Force Turtle window to the front on OS X. This is needed because
+            # the Turtle window will show behind the Terminal window when you
+            # start the demo from the command line.
+        #    rootwindow = cv.winfo_toplevel()
+        #    rootwindow.call('wm', 'attributes', '.', '-topmost', '1')
+        #    rootwindow.call('wm', 'attributes', '.', '-topmost', '0')
+
+    def clear(self):
+        """Delete all drawings and all turtles from the TurtleScreen.
+
+        No argument.
+
+        Reset empty TurtleScreen to its initial state: white background,
+        no backgroundimage, no eventbindings and tracing on.
+
+        Example (for a TurtleScreen instance named screen):
+        >>> screen.clear()
+
+        Note: this method is not available as function.
+        """
+        #self._delayvalue = _CFG["delay"]
+        #self._colormode = _CFG["colormode"]
+        #self._delete("all")
+        #self._bgpic = self._createimage("")
+        #self._bgpicname = "nopic"
+        #self._tracing = 1
+        #self._updatecounter = 0
+        #self._turtles = []
+        self.bgcolor("white")
+        self.svg.replaceChildren()
+        self.svg.appendChild(_defs)
+        #for btn in 1, 2, 3:
+        #    self.onclick(None, btn)
+        #self.onkeypress(None)
+        #for key in self._keys[:]:
+        #    self.onkey(None, key)
+        #    self.onkeypress(None, key)
+        #Turtle._pen = None
+
+
+    def setup(self, width=_CFG["width"], height=_CFG["height"],
+              startx=_CFG["leftright"], starty=_CFG["topbottom"]):
+        """ Set the size and position of the main window.
+
+        Arguments:
+        width: as integer a size in pixels, as float a fraction of the screen.
+          Default is 50% of screen.
+        height: as integer the height in pixels, as float a fraction of the
+          screen. Default is 75% of screen.
+        startx: if positive, starting position in pixels from the left
+          edge of the screen, if negative from the right edge
+          Default, startx=None is to center window horizontally.
+        starty: if positive, starting position in pixels from the top
+          edge of the screen, if negative from the bottom edge
+          Default, starty=None is to center window vertically.
+
+        Examples (for a Screen instance named screen):
+        >>> screen.setup (width=200, height=200, startx=0, starty=0)
+
+        sets window to 200x200 pixels, in upper left of screen
+
+        >>> screen.setup(width=.75, height=0.5, startx=None, starty=None)
+
+        sets window to 75% of screen by 50% of screen and centers
+        """
+        """
+        if not hasattr(self._root, "set_geometry"):
+            return
+        sw = self._root.win_width()
+        sh = self._root.win_height()
+        if isinstance(width, float) and 0 <= width <= 1:
+            width = sw*width
+        if startx is None:
+            startx = (sw - width) / 2
+        if isinstance(height, float) and 0 <= height <= 1:
+            height = sh*height
+        if starty is None:
+            starty = (sh - height) / 2
+        self._root.set_geometry(width, height, startx, starty)
+        """
+        
+        
+        self.update()
+
+    def update(self):
+        """Perform a TurtleScreen update.
+        """
+        #tracing = self._tracing
+        #self._tracing = True
+        #for t in self.turtles():
+        #    t._update_data()
+        #    t._drawturtle()
+        #self._tracing = tracing
+        #self._update()
+        
+
+    def register_shape(self, name, shape=None):
         """CDTN NOTE: 
 
             - for, only images
@@ -55,30 +272,135 @@ class Screen:
           height="240" 
           xlink:href="some-image.png"
         />"""
-        print(f"CDTN: Registering shape {shape}")
+        print(f"CDTN: Registering shape: name: {name}   shape:{shape}")
 
-        defs = self.svg.getElementsById("defs")
+        defs = self.svg.getElementById("defs")
 
         ns = 'http://www.w3.org/2000/svg'
         img = document.createElementNS(ns, 'image')
-        img.setAttributeNS(None, 'x', self.x)
-        img.setAttributeNS(None, 'y', self.y)
-        img.setAttributeNS(None, 'width', width)
-        img.setAttributeNS(None, 'height', height)
-        img.setAttributeNS(None, 'xlink:href', href)
+        img.setAttributeNS(None, 'x', 0)
+        img.setAttributeNS(None, 'y', 0)
+        img.setAttributeNS(None, 'width', 20)
+        img.setAttributeNS(None, 'height', 20)
+        #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
+        img.setAttributeNS(None, 'href', name)
 
-        if sid:
-            img.setAttributeNS(None, 'id', sid)
+
+        # TODO sanitize?
+        img.setAttributeNS(None, 'id', name)
 
         defs.appendChild(img)
 
+        
         if shape is None:
-            shape = Shape("image", self.svg._image(name))
+            shape = Shape("image", img)
 
-        #elif isinstance(shape, tuple):
-        #    shape = Shape("polygon", shape)
-        ## else shape assumed to be Shape-instance
 
+        elif isinstance(shape, tuple):
+            raise NotImplementedError('CDTN: polygons not yet supported!') 
+            #shape = Shape("polygon", shape)
+        # else shape assumed to be Shape-instance
+        self._shapes[name] = shape
+
+    def _window_size(self):
+        """ Return the width and height of the turtle window.
+        """
+        #width = self.cv.winfo_width()
+        #if width <= 1:  # the window isn't managed by a geometry manager
+        #    width = self.cv['width']
+        #height = self.cv.winfo_height()
+        #if height <= 1: # the window isn't managed by a geometry manager
+        #    height = self.cv['height']
+        
+        bcr = self.svg.getBoundingClientRect()
+        
+        return bcr['width'], bcr['height']
+
+    def window_width(self):
+        """ Return the width of the turtle window.
+
+        Example (for a TurtleScreen instance named screen):
+        >>> screen.window_width()
+        640
+        """
+        return self._window_size()[0]
+
+    def window_height(self):
+        """ Return the height of the turtle window.
+
+        Example (for a TurtleScreen instance named screen):
+        >>> screen.window_height()
+        480
+        """
+        return self._window_size()[1]
+    
+    def _iscolorstring(self, color):
+        """Check if the string color is a legal Tkinter color string.
+        """
+        #CDTN TODO Too optimistic
+        return True
+    
+    def _colorstr(self, color):
+        """Return color string corresponding to args.
+
+        Argument may be a string or a tuple of three
+        numbers corresponding to actual colormode,
+        i.e. in the range 0<=n<=colormode.
+
+        If the argument doesn't represent a color,
+        an error is raised.
+        """
+        if len(color) == 1:
+            color = color[0]
+        if isinstance(color, str):
+            if self._iscolorstring(color) or color == "":
+                return color
+            else:
+                raise TurtleGraphicsError("bad color string: %s" % str(color))
+        try:
+            r, g, b = color
+        except (TypeError, ValueError):
+            raise TurtleGraphicsError("bad color arguments: %s" % str(color))
+        if self._colormode == 1.0:
+            r, g, b = [round(255.0*x) for x in (r, g, b)]
+        if not ((0 <= r <= 255) and (0 <= g <= 255) and (0 <= b <= 255)):
+            raise TurtleGraphicsError("bad color sequence: %s" % str(color))
+        return "#%02x%02x%02x" % (r, g, b)
+
+    
+    def _bgcolor(self, color=None):
+        """Set canvas' backgroundcolor if color is not None,
+        else return backgroundcolor."""
+    
+        if color:
+            self.svg.style.setProperty("background-color",  color)
+        else:
+            return self.svg.style["background-color"] 
+        
+    def bgcolor(self, *args):
+        """Set or return backgroundcolor of the TurtleScreen.
+
+        Arguments (if given): a color string or three numbers
+        in the range 0..colormode or a 3-tuple of such numbers.
+
+        Example (for a TurtleScreen instance named screen):
+        >>> screen.bgcolor("orange")
+        >>> screen.bgcolor()
+        'orange'
+        >>> screen.bgcolor(0.5,0,0.5)
+        >>> screen.bgcolor()
+        '#800080'
+        """
+        if args:
+            color = self._colorstr(args)
+        else:
+            color = None
+        color = self._bgcolor(color)
+        if color is not None:
+            color = self._color(color)
+        return color    
+
+_defaultScreen = Screen()
 
 
 #def _rightSize (self):
@@ -100,11 +422,8 @@ window.onresize = _rightSize
 #CDTN TODO TypeError: _rightSize() missing 1 required positional argument: 'self'
 _rightSize ()
 
-def bgcolor (color):
-    global _defaultElement
-
-    _bgcolor = color
-    _defaultElement.style.backgroundColor = _bgcolor
+def bgcolor(*args):
+    _defaultScreen.bgcolor(*args)
 
 bgcolor ('white')
 
@@ -126,6 +445,7 @@ class Turtle:
         self._paths = []
         self._track = []
         self._fill = False
+        self._screen = _defaultScreen
         self.reset ()
 
     def reset (self):

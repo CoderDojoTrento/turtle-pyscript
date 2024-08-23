@@ -164,8 +164,9 @@ def check_type(arg, *types):
 
         
 
-#screen = Screen()
-#screen.register_shape('turtle.gif')
+screen = Screen()
+screen.register_shape('img/turtle.svg')
+
 #ada = Sprite()
 #sprite = ada
 #init(ada, append=True)
