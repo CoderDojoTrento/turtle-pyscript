@@ -59,12 +59,13 @@ It will warn you the certificate is not signed, just click proceed.
 
 ## Technical stuff
 
-## Pyscript and pyodide
+### Pyscript and pyodide
 
 To interface between the browser and Python interpreter we're using Pyscript, which in this case runs pyodide a WASM port. 
 
 Note there is no transcompilation to Javascript, the python code runs entirely in a true CPython environment.
 
+### Display with SVG
 
 As graphical display we use a native `<svg>` element in the browser. This has the following benefits:
 
@@ -78,6 +79,11 @@ Typically for videogames you would choose `<canvas>`, as svg is slower for video
 since lib is thought for educational purposes svg is sufficient.
 
 
+### Developer notes
+
+- [styling svg with use, symbol, defs](https://tympanus.net/codrops/2015/07/16/styling-svg-use-content-css/)
+- [Structuring, Grouping, and Referencing in SVG](https://www.sarasoueidan.com/blog/structuring-grouping-referencing-in-svg/#the-use-element)
+ 
 
 ## Credits and inspiration
 

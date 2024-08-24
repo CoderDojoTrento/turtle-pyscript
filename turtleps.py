@@ -80,16 +80,48 @@ class Shape(object):
     attribute _type is one of "polygon", "image", "compound"
     attribute _data is - depending on _type a poygon-tuple,
     an image or a list constructed using the addcomponent method.
+    
+    CDTN: doesn't seem really useful, in the original CPython implementation doesn't 
+          have public attributes nor methods to retrieve stuff. 
+          original _data  che be in many forms, from concrete bitmap images to tuples
+          Decision: will store in ._data nothing
+                    will store in .svg an unlinked svg element 
+          
     """
     
     def __init__(self, type_, data=None):
         self._type = type_
+        
+    
         if type_ == "polygon":
+            
             if isinstance(data, list):
                 data = tuple(data)
+                """
+                <polygon points="100,100 150,25 150,75 200,0" fill="none" stroke="black" />
+                """
+            
+            poly = document.createElementNS(_ns, 'polygon')
+            points_str = ' '.join([','.join([str(el) for el in t]) for t in data])
+            poly.setAttributeNS(None, 'points', points_str)
+            self.svg = poly
+            
+            # leaving default fill...
+            
         elif type_ == "image":
             if not data:
                 raise ValueError("CDTN: Missing image data!")
+
+            img = document.createElementNS(_ns, 'image')
+            img.setAttributeNS(None, 'x', 0)
+            img.setAttributeNS(None, 'y', 0)
+            img.setAttributeNS(None, 'width', 20)
+            img.setAttributeNS(None, 'height', 20)
+            #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
+            img.setAttributeNS(None, 'href', data)
+            
+            self.svg = img 
+
             #CDTN commented, expect svg node
             #if isinstance(data, str):
                 #if data.lower().endswith(".gif") and os.path.isfile(data):
@@ -97,10 +129,11 @@ class Shape(object):
             
                 # else data assumed to be PhotoImage  # CDTN ??
         elif type_ == "compound":
-            data = []
+            #data = []  CDTN
+            self.svg = document.createElementNS(_ns, 'g')   # group
         else:
             raise TurtleGraphicsError("There is no shape type %s" % type_)
-        self._data = data
+        
 
     def addcomponent(self, poly, fill, outline=None):
         """Add component to a shape of type compound.
@@ -123,21 +156,32 @@ class Shape(object):
                                                                 % self._type)
         if outline is None:
             outline = fill
-        self._data.append([poly, fill, outline])
+       
+        poly = document.createElementNS(_ns, 'polygon')
+        points_str = ' '.join([','.join(t) for t in data])
+        poly.setAttributeNS(None, 'points', points_str)
+        if fill:
+            poly.setAttributeNS(None, 'fill', fill)
+        
+        if outline:
+            poly.setAttributeNS(None, 'outline', outline)
+        
+        self._data.appendChild(poly)
 
 
 class Screen:
     def __init__(self):
         print("CDTN: Initializing screen...")
         self.svg = _svg
-        self._shapes = []
         self._turtles = []
         
         #self.canvwidth = w
         #self.canvheight = h
         #self.xscale = self.yscale = 1.0
 
-        self._shapes = {
+
+
+        shapes = {
                    "arrow" : Shape("polygon", ((-10,0), (10,0), (0,10))),
                   "turtle" : Shape("polygon", ((0,16), (-2,14), (-1,10), (-4,7),
                               (-7,9), (-9,8), (-6,5), (-7,1), (-5,-3), (-8,-6),
@@ -157,6 +201,8 @@ class Screen:
                   "classic": Shape("polygon", ((0,0),(-5,-9),(0,-7),(5,-9))),
                    #CDTN not supported "blank" : Shape("image", self._blankimage())
                   }
+        for name, shape in shapes.items():
+            self.register_shape(name, shape)
 
         self._bgpics = {"nopic" : ""}
 
@@ -204,6 +250,7 @@ class Screen:
         #    self.onkey(None, key)
         #    self.onkeypress(None, key)
         #Turtle._pen = None
+        pass
 
 
     def setup(self, width=_CFG["width"], height=_CFG["height"],
@@ -260,48 +307,53 @@ class Screen:
         #    t._drawturtle()
         #self._tracing = tracing
         #self._update()
+        pass
         
 
     def register_shape(self, name, shape=None):
-        """CDTN NOTE: 
+        """Adds a turtle shape to TurtleScreen's shapelist.
 
-            - for, only images
-            - images in this engine WILL rotate according 
-               to direction (as you would expect..)
-        <image 
-          width="240" 
-          height="240" 
-          xlink:href="some-image.png"
-        />"""
+        Arguments:
+        (1) name is the name of a gif-file and shape is None.
+            Installs the corresponding image shape.
+            !! CDTN: images in our implementation do actually turn to heading orientation
+        (2) name is an arbitrary string and shape is a tuple
+            of pairs of coordinates. Installs the corresponding
+            polygon shape
+        (3) name is an arbitrary string and shape is a
+            (compound) Shape object. Installs the corresponding
+            compound shape.
+        To use a shape, you have to issue the command shape(shapename).
+
+        call: register_shape("turtle.gif")
+        --or: register_shape("tri", ((0,0), (10,10), (-10,10)))
+
+        Example (for a TurtleScreen instance named screen):
+        >>> screen.register_shape("triangle", ((5,-3),(0,5),(-5,-3)))
+
+        """
+        # TODO check double registration   
+
         print(f"CDTN: Registering shape: name: {name}   shape:{shape}")
+        
 
         defs = self.svg.getElementById("defs")
+        
+        if shape is None:
+            the_shape = Shape("image", name)
 
-        ns = 'http://www.w3.org/2000/svg'
-        img = document.createElementNS(ns, 'image')
-        img.setAttributeNS(None, 'x', 0)
-        img.setAttributeNS(None, 'y', 0)
-        img.setAttributeNS(None, 'width', 20)
-        img.setAttributeNS(None, 'height', 20)
-        #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
-        img.setAttributeNS(None, 'href', name)
+        elif isinstance(shape, tuple):
+            the_shape = Shape("polygon", shape)
+        else:
+            the_shape = shape
+            
+        # else shape assumed to be Shape-instance
 
 
         # TODO sanitize?
-        img.setAttributeNS(None, 'id', name)
+        the_shape.svg.setAttributeNS(None, 'id', name)
 
-        defs.appendChild(img)
-
-        
-        if shape is None:
-            shape = Shape("image", img)
-
-
-        elif isinstance(shape, tuple):
-            raise NotImplementedError('CDTN: polygons not yet supported!') 
-            #shape = Shape("polygon", shape)
-        # else shape assumed to be Shape-instance
-        self._shapes[name] = shape
+        defs.appendChild(the_shape.svg)
 
     def _window_size(self):
         """ Return the width and height of the turtle window.
@@ -441,20 +493,59 @@ def setDefaultElement(element):
 _allTurtles = []
 
 class Turtle:
+
+
     def __init__(self, 
-                 shape=_CFG["shape"],
+                 shape=_CFG["shape"],  # NOTE: this is meant to be an id
                  visible=_CFG["visible"]):
+        
+        shape_svg_id = f'#{shape}'
         _allTurtles.append (self)
+          
         self._paths = []
         self._track = []
         self._shape = shape
         self._fill = False
+        
         self._screen = _defaultScreen
         self._screen._turtles.append(self)
+        #shape_node = document.getElementById(shape)
+        #cloned_shape_node = shape_node.cloneNode(True)
+        #self._screen.svg.appendChild(cloned_shape_node)
+
+        use_node = document.createElementNS (_ns, 'use')
+        """
+        <use href="#tree" x="50" y="100" />  
+        """
+        use_node.setAttribute('href', shape_svg_id)
+        #use_node.setAttribute('x', 0 + _offset[0])  # setting this prevents polygon rotation from working
+        #use_node.setAttribute('y', 0 + _offset[1])
+        
+        shape_el = document.getElementById(shape)
+        transform = f"translate({0 + _offset[0]},{0 + _offset[1]})"
+
+        if shape_el.tagName == 'polygon':
+            use_node.setAttribute('fill', _CFG["fillcolor"])
+            use_node.setAttribute('stroke', _CFG["pencolor"])
+            use_node.setAttribute('stroke-width', 1)
+            use_node.setAttribute('fill-rule', 'evenodd')
+            transform += " rotate(-90)" # polygons are drawn pointing top, images pointing right :-/
+
+        use_node.setAttribute('id', f"turtle-{id(self)}")
+
+        use_node.setAttribute('transform', transform)
+
+
+        self._screen.svg.appendChild(use_node)
+
         self.reset()
+        print(f"{self._heading=}")
+
+    #def _transform(self):
+    #TODO
 
     def reset(self):
-        self._heading = math.pi / 2
+        self._heading = 0 # math.pi / 2  # note zero makes the sun example go in the lower left corner..  
         self.pensize(1)
         self.color('black', 'black')
         self.down()

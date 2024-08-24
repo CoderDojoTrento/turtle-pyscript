@@ -18,6 +18,7 @@ from pyodide.ffi.wrappers import add_event_listener
 
 
 from turtleps import *
+#from cdtnge import *
 
 ctx = None
 interval=200  # TODO
@@ -164,10 +165,7 @@ def check_type(arg, *types):
 
         
 
-screen = Screen()
-screen.register_shape('img/turtle.svg')
 
-ada = Turtle()
 
 
 #sprite = ada
@@ -177,6 +175,9 @@ ada = Turtle()
 #rettangolo.fill = "green"  # non funziona
 #update()
 
+
+screen = Screen()
+screen.register_shape('img/turtle.svg')
 
 
 up ()
@@ -194,3 +195,10 @@ while True:
 end_fill ()
 done ()
 
+
+#ada = Turtle(shape='img/turtle.svg')
+ada = Turtle()
+
+#for i in range(4):
+#    ada.forward(100)
+#    ada.left(90)
