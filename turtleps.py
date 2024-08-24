@@ -506,6 +506,7 @@ class Turtle:
         self._track = []
         self._shape = shape
         self._fill = False
+        self._heading = 0
         
         self._screen = _defaultScreen
         self._screen._turtles.append(self)
@@ -529,11 +530,11 @@ class Turtle:
             use_node.setAttribute('stroke', _CFG["pencolor"])
             use_node.setAttribute('stroke-width', 1)
             use_node.setAttribute('fill-rule', 'evenodd')
-            transform += " rotate(-90)" # polygons are drawn pointing top, images pointing right :-/
+
 
         use_node.setAttribute('id', f"turtle-{id(self)}")
 
-        use_node.setAttribute('transform', transform)
+        use_node.setAttribute('transform', self._svg_transform())
 
 
         self._screen.svg.appendChild(use_node)
@@ -541,11 +542,19 @@ class Turtle:
         self.reset()
         print(f"{self._heading=}")
 
-    #def _transform(self):
-    #TODO
+    def _svg_transform(self):
+
+        shape_el = document.getElementById(self._shape)
+        tilt_fix = 0
+        if shape_el.tagName == 'polygon':
+            tilt_fix = -90   # polygons are designed pointing top, images look natural pointing right :-/
+
+        rot = math.degrees(self._heading) + tilt_fix
+        return f"translate({0 + _offset[0]},{0 + _offset[1]}) rotate({rot})"
+
 
     def reset(self):
-        self._heading = 0 # math.pi / 2  # note zero makes the sun example go in the lower left corner..  
+        self._heading = 0    
         self.pensize(1)
         self.color('black', 'black')
         self.down()
@@ -644,7 +653,8 @@ class Turtle:
         return self._down
 
     def _predict(self, length):
-        delta = [math.sin(self._heading), math.cos(self._heading)]
+        corrected_heading = self._heading + math.pi/2
+        delta = [math.sin(corrected_heading), math.cos(corrected_heading)]
         return [self._position[0] + length * delta[0], self._position[1] + length * delta[1]]
 
     def forward(self, length):
@@ -686,8 +696,53 @@ class Turtle:
             self._position[1] + _offset[1]
         ))
 
+    def heading(self):
+        """ Return the turtle's current heading.
+
+        No arguments.
+
+        Example (for a Turtle instance named turtle):
+        >>> turtle.left(67)
+        >>> turtle.heading()
+        67.0
+        """
+        return math.degrees(self._heading)
+    
+    def setheading(self, to_angle):
+        """Set the orientation of the turtle to to_angle.
+
+        Aliases:  setheading | seth
+
+        Argument:
+        to_angle -- a number (integer or float)
+
+        Set the orientation of the turtle to to_angle.
+        Here are some common directions in degrees:
+
+         standard - mode:          logo-mode:
+        -------------------|--------------------
+           0 - east                0 - north
+          90 - north              90 - east
+         180 - west              180 - south
+         270 - south             270 - west
+
+        Example (for a Turtle instance named turtle):
+        >>> turtle.setheading(90)
+        >>> turtle.heading()
+        90
+        """
+        angle = (to_angle - self.heading())*self._angleOrient
+        full = self._fullcircle
+        angle = (angle+full/2.)%full - full/2.
+        self._rotate(angle)
+    
+
+
     def left(self, angle):
-        self._heading = (self._heading + math.pi * angle / 180) % (2 * math.pi)
+        print(f"left: prev heading {self._heading}")
+        self._heading =  (self._heading + (angle * math.pi / 180)) % (2 * math.pi)
+        
+        print(f"    : new heading {self._heading}")
 
     def right(self, angle): 
         self.left(-angle)
@@ -702,6 +757,17 @@ class Turtle:
 
     def speed(speed = None):
         pass
+    
+    fd = forward
+    bk = back
+    backward = back
+    rt = right
+    lt = left
+    setpos = goto
+    setposition = goto
+    seth = setheading
+
+
 
 _defaultTurtle = Turtle()
 _timer = None
@@ -742,3 +808,14 @@ def right(angle):                      _defaultTurtle.right(angle)
 def begin_fill():                      _defaultTurtle.begin_fill()
 def end_fill():                        _defaultTurtle.end_fill()
 def speed(speed):                      _defaultTurtle.speed(speed)
+def setheading(angle):                 _defaultTurtle.setheading(angle)
+
+
+fd = forward
+bk = back
+backward = back
+rt = right
+lt = left
+setpos = goto
+setposition = goto
+seth = setheading

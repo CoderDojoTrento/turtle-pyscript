@@ -95,7 +95,7 @@ def init(sprite, append=True):
     sprite.target = page["body"][0]
 
     doc = DOMParser.new().parseFromString(
-        open_url(sprite.url).read(), "image/svg+xml"
+        open_url(sprite.url).read(), "image/svg+xml"    
     )
 
     #doc = img(src=sprite.url)
@@ -199,6 +199,7 @@ done ()
 #ada = Turtle(shape='img/turtle.svg')
 ada = Turtle()
 
-#for i in range(4):
-#    ada.forward(100)
-#    ada.left(90)
+for i in range(4):
+    ada.forward(100)
+    ada.left(90)
+ada.done()
