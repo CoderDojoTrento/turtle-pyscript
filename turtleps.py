@@ -494,14 +494,14 @@ _allTurtles = []
 
 class Turtle:
 
-
     def __init__(self, 
                  shape=_CFG["shape"],  # NOTE: this is meant to be an id
                  visible=_CFG["visible"]):
         
         shape_svg_id = f'#{shape}'
         _allTurtles.append (self)
-          
+
+        self._position = [0,0] 
         self._paths = []
         self._track = []
         self._shape = shape
@@ -523,8 +523,7 @@ class Turtle:
         #use_node.setAttribute('y', 0 + _offset[1])
         
         shape_el = document.getElementById(shape)
-        transform = f"translate({0 + _offset[0]},{0 + _offset[1]})"
-
+        
         if shape_el.tagName == 'polygon':
             use_node.setAttribute('fill', _CFG["fillcolor"])
             use_node.setAttribute('stroke', _CFG["pencolor"])
@@ -535,7 +534,8 @@ class Turtle:
         use_node.setAttribute('id', f"turtle-{id(self)}")
 
         use_node.setAttribute('transform', self._svg_transform())
-
+        
+        self.svg = use_node
 
         self._screen.svg.appendChild(use_node)
 
@@ -548,9 +548,11 @@ class Turtle:
         tilt_fix = 0
         if shape_el.tagName == 'polygon':
             tilt_fix = -90   # polygons are designed pointing top, images look natural pointing right :-/
+            print(f"{tilt_fix=}")
 
-        rot = math.degrees(self._heading) + tilt_fix
-        return f"translate({0 + _offset[0]},{0 + _offset[1]}) rotate({rot})"
+        rot = math.degrees(-self._heading) + tilt_fix
+        print(f"{rot=}")
+        return f"translate({self._position[0] + _offset[0]},{self._position[1] + _offset[1]}) rotate({rot})"
 
 
     def reset(self):
@@ -615,6 +617,7 @@ class Turtle:
             self._position[0] + _offset[0],
             self._position[1] + _offset[1])
         )
+        self._update_transform()
 
     def _moveto(self, x, y = None):
         wasdown = self.isdown()
@@ -665,9 +668,11 @@ class Turtle:
             self._position[0] + _offset[0],
             self._position[1] + _offset[1])
         )
+        self._update_transform()
 
     def back(self, length):
         self.forward(-length)
+
 
     def circle(self, radius):
         self.left(90)
@@ -708,6 +713,9 @@ class Turtle:
         """
         return math.degrees(self._heading)
     
+    def _update_transform(self):
+        self.svg.setAttribute('transform', self._svg_transform())
+
     def setheading(self, to_angle):
         """Set the orientation of the turtle to to_angle.
 
@@ -731,18 +739,16 @@ class Turtle:
         >>> turtle.heading()
         90
         """
-        angle = (to_angle - self.heading())*self._angleOrient
-        full = self._fullcircle
-        angle = (angle+full/2.)%full - full/2.
-        self._rotate(angle)
-    
-
+        self._heading =  (to_angle * math.pi / 180.0) % (2 * math.pi)
+        self._update_transform()
 
     def left(self, angle):
         print(f"left: prev heading {self._heading}")
-        self._heading =  (self._heading + (angle * math.pi / 180)) % (2 * math.pi)
+        
+        self._heading = (self._heading + (angle * math.pi / 180.0)) % (2 * math.pi)
         
         print(f"    : new heading {self._heading}")
+        self._update_transform()
 
     def right(self, angle): 
         self.left(-angle)
@@ -758,6 +764,67 @@ class Turtle:
     def speed(speed = None):
         pass
     
+    def write(self, arg, move=False, align="left", font=("Arial", 8, "normal")):
+        """Write text at the current turtle position.
+
+        Arguments:
+        arg -- info, which is to be written to the TurtleScreen
+        move (optional) -- True/False
+        align (optional) -- one of the strings "left", "center" or right"
+        font (optional) -- a triple (fontname, fontsize, fonttype)
+
+        Write text - the string representation of arg - at the current
+        turtle position according to align ("left", "center" or right")
+        and with the given font.
+        If move is True, the pen is moved to the bottom-right corner
+        of the text. By default, move is False.
+
+        Example (for a Turtle instance named turtle):
+        >>> turtle.write('Home = ', True, align="center")
+        >>> turtle.write((0,0), True)
+        """
+        """
+        <text x="20" y="35" class="small">My</text>
+        """
+        txt = document.createElementNS (_ns, 'text')
+        txt.setAttribute('x', self._position[0] + _offset[0])
+        txt.setAttribute('y', self._position[1] + _offset[1])
+        txt.textContent = arg
+
+        #for now let's use text-anchor https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/text-anchor
+        if align == "left":
+            text_anchor = "end"
+        elif align == "center":
+            text_anchor = "middle"
+        elif align == "right":
+            text_anchor = "start"
+        else:
+            raise ValueError(f"Unknown align: {align}")
+        
+        style = f"""font-family: {font[0]}; 
+                    font-weight: {font[2]};
+                    font-size: {font[1]}px; 
+                    fill: {self._pencolor};
+                    text-anchor:{text_anchor};
+                    alignment-baseline:central;
+        """
+        txt.setAttribute('style',  style)
+        
+        self._screen.svg.appendChild(txt)
+
+
+        """
+        if self.undobuffer:
+            self.undobuffer.push(["seq"])
+            self.undobuffer.cumulate = True
+        end = self._write(str(arg), align.lower(), font)
+        if move:
+            x, y = self.pos()
+            self.setpos(end, y)
+        if self.undobuffer:
+            self.undobuffer.cumulate = False
+        """
+
     fd = forward
     bk = back
     backward = back

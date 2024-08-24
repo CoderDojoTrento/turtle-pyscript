@@ -195,11 +195,34 @@ while True:
 end_fill ()
 done ()
 
+#import time
+import asyncio
 
 #ada = Turtle(shape='img/turtle.svg')
 ada = Turtle()
 
-for i in range(4):
-    ada.forward(100)
-    ada.left(90)
+#await asyncio.sleep(1)
+
+#for i in range(3):
+ada.color('green')
+ada.write("Ciao mondo!", align="right", font=("Courier", 18, "bold"))
+ada.forward(100)
+#time.sleep(1)
+#await asyncio.sleep(1)
+ada.done()
+ada.left(90)
+
+#time.sleep(1)
+ada.done()
+
+ada.circle(40)
+ada.done()
+
+ada.forward(100)
+
+ada.color('blue')
+ada.write("La la", align="center", font=("Times New Roman", 24, "italic"))
+ada.done()
+ada.left(90)
+ada.forward(100)
 ada.done()
