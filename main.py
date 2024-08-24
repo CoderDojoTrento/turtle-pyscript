@@ -167,7 +167,9 @@ def check_type(arg, *types):
 screen = Screen()
 screen.register_shape('img/turtle.svg')
 
-#ada = Sprite()
+ada = Turtle()
+
+
 #sprite = ada
 #init(ada, append=True)
 #rettangolo = ada.add_rect(30,40,fill='rgb(0,255,255)', sid='pippo')

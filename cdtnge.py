@@ -5,5 +5,8 @@ Very minimal game engine which adds some convenience on top of turtleps
 """
 
 
-import turtleps
+from turtleps import *
+
+
+
 
