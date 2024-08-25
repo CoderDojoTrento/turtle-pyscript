@@ -123,12 +123,23 @@ _CFG = {"width" : 0.5,               # Screen
         "using_IDLE": False
        }
 
+
 _ns = 'http://www.w3.org/2000/svg'
 _svg = document.createElementNS (_ns, 'svg')
-
 _defs = document.createElementNS (_ns, 'defs')
 _defs.setAttributeNS(None, 'id', 'defs')
 _svg.appendChild(_defs)
+
+# so we can at least define z-order of turtles
+_svg_turtles = document.createElementNS (_ns, 'g')
+_svg_turtles.setAttribute('class', 'turtles')
+_svg_painting = document.createElementNS (_ns, 'g')
+_svg_painting.setAttribute('class', 'painting')
+
+
+_svg.appendChild(_svg_painting)
+_svg.appendChild(_svg_turtles)
+
 
 
 _defaultElement = document.getElementById ('__turtlegraph__')
@@ -241,6 +252,9 @@ class Screen:
     def __init__(self):
         _debug("CDTN: Initializing screen...")
         self.svg = _svg
+        self.svg_turtles = _svg_turtles
+        self.svg_painting = _svg_painting
+        
         self._turtles = []
         self._shapes = {}
 
@@ -312,6 +326,8 @@ class Screen:
 
         Note: this method is not available as function.
         """
+        _debug("Screen.clear()")
+
         #self._delayvalue = _CFG["delay"]
         #self._colormode = _CFG["colormode"]
         #self._delete("all")
@@ -320,9 +336,11 @@ class Screen:
         #self._tracing = 1
         #self._updatecounter = 0
         #self._turtles = []
+        
         self.bgcolor("white")
-        self.svg.replaceChildren()
-        self.svg.appendChild(_defs)
+        self.svg_turtles.replaceChildren()
+        self.svg_painting.replaceChildren()
+        
         #for btn in 1, 2, 3:
         #    self.onclick(None, btn)
         #self.onkeypress(None)
@@ -330,7 +348,7 @@ class Screen:
         #    self.onkey(None, key)
         #    self.onkeypress(None, key)
         #Turtle._pen = None
-        pass
+        
 
 
     def setup(self, width=_CFG["width"], height=_CFG["height"],
@@ -618,6 +636,9 @@ class Turtle:
         self._paths = []
         self._track = []
         
+        self._pencolor = _CFG["pencolor"]
+        self._fillcolor = _CFG["fillcolor"]
+        self._pensize = 1
 
         self._shown = True
         self._fill = False
@@ -639,7 +660,8 @@ class Turtle:
         
         self.svg = use_node
 
-        self.screen.svg.appendChild(use_node)
+        self.screen.svg_turtles.appendChild(use_node)
+        _debug("turtle was appended to screen.svg_turtles")
 
         self.shape(shape)
 
@@ -658,53 +680,72 @@ class Turtle:
         _trace(f"{rot=}")
         return f"translate({self._position[0] + _offset[0]},{self._position[1] + _offset[1]}) rotate({rot})"
 
+    def _create_track(self):
+        _debug("Creating new _track_svg_path")
+        self._track = []    # Need to make track explicitly because
+        # _track should start with a move command
+        self._track.append('{} {} {}'.format(
+            'M',
+            self._position[0] + _offset[0],
+            self._position[1] + _offset[1])
+        )
+
+        tsp = document.createElementNS(_ns, 'path')
+                
+        self.screen.svg_painting.appendChild(tsp)
+        self._paths.append(tsp)
+        self._track_svg_path = tsp
 
     def reset(self):
-        self._heading = 0    
-        self.pensize(1)
-        self.color('black', 'black')
-        self.down()
-        self._track = []    # Need to make track explicitly because:
-        self.home()         # Makes a position but needs a track to put in in
+        self._heading = 0
+        self.down ()
+        self.color ('black', 'black')
+        self.pensize (1)
+
+        self.home()         # Makes a position but needs a track to put in
         self.clear()        # Makes a track but needs a position to initialize it with
 
-    def clear (self):
-        for path in self._paths:
-            _svg.removeChild(path)
-        self._paths = []
 
-        self._track = []
+       
+    def clear(self):
+        _debug("Clearing turtle...")
+        for path in self._paths:
+            self.screen.svg_painting.removeChild(path)
+        self._paths = []  # TODO rename, it hosts anything drawn by the turtle
+
+        self._create_track()
         self._moveto(self._position)
 
     def _flush(self):
         
-        _trace('Flush:', self._track)
+        _debug('Flush:', self._track)
 
         if len(self._track) > 1:
-            path = document.createElementNS (_ns, 'path')
-            path.setAttribute('d', ' '.join (self._track))
-            path.setAttribute('stroke', self._pencolor if self._pencolor != None else 'none')
-            path.setAttribute('stroke-width', self._pensize)
-            path.setAttribute('fill', self._fillcolor if self._fill and self._fillcolor != None else 'none')           
-            path.setAttribute('fill-rule', 'evenodd')
-            _svg.appendChild(path)
-            self._paths.append(path)
+            tsp = self._track_svg_path
+            ts = ' '.join (self._track)
+            ds = tsp.getAttribute('d')
 
-            self._track = []
-            self._moveto(self._position)   # _track should start with a move command
+            _debug(f"{ds=}")
+            if ds:
+                ts = f"{ds} {ts}"
+            _debug(f"{ts=}")
+            tsp.setAttribute('d', ts)
+            tsp.setAttribute('stroke', self._pencolor if self._pencolor != None else 'none')
+            tsp.setAttribute('stroke-width', self._pensize)
+                
 
-    def done(self):
-        self._flush()
+    #def done(self):
+    #    self._flush()
 
     def pensize(self, width):
-        self._flush()
+        #self._flush()
         if width == None:
             return self._pensize
         else:
             self._pensize = width
 
     def color(self, pencolor, fillcolor = None):
-        self._flush()
+        #self._flush()
         self._pencolor = pencolor
 
         if fillcolor is not None:
@@ -721,7 +762,9 @@ class Turtle:
             self._position[0] + _offset[0],
             self._position[1] + _offset[1])
         )
+
         self._update_transform()
+        self._flush()
 
     def _moveto(self, x, y = None):
         wasdown = self.isdown()
@@ -781,6 +824,7 @@ class Turtle:
             self._position[1] + _offset[1])
         )
         self._update_transform()
+        self._flush()
 
     def back(self, length):
         self.forward(-length)
@@ -813,6 +857,7 @@ class Turtle:
             self._position[0] + _offset[0],
             self._position[1] + _offset[1]
         ))
+        self._flush()
 
     def heading(self):
         """ Return the turtle's current heading.
@@ -867,13 +912,19 @@ class Turtle:
         self.left(-angle)
 
     def begin_fill(self):
-        self._flush()
+        _debug("Beginning fill")
+        self._create_track()
         self._fill = True
 
     def end_fill(self):
-        self._flush()
+        _debug("end_fill")
+        tsp = self._track_svg_path
+        tsp.setAttribute('fill', self._fillcolor if self._fill and self._fillcolor != None else 'none')           
+        #tsp.setAttribute('fill-rule', 'evenodd') # don't think we need it
         self._fill = False
-
+        self._create_track()
+        
+        
     def speed(self, speed=None):
         """ Return or set the turtle's speed.
 
@@ -961,8 +1012,8 @@ class Turtle:
         """
         txt.setAttribute('style',  style)
         
-        self.screen.svg.appendChild(txt)
-
+        self.screen.svg_painting.appendChild(txt)
+        self._paths.append(txt)
 
         """
         if self.undobuffer:
@@ -1054,6 +1105,7 @@ class Turtle:
     backward = back
     rt = right
     lt = left
+    ht = hideturtle
     setpos = goto
     setposition = goto
     seth = setheading
@@ -1074,7 +1126,7 @@ def reset():
     bgcolor('white')
     for turtle in _allTurtles:
         turtle.reset()
-        turtle.done()
+        turtle._flush()
 
 def clear():
     global _allTurtles
@@ -1085,7 +1137,7 @@ def ontimer(fun, t = 0):
     global _timer
     _timer = setTimeout(fun, t)
 
-def done():                            _defaultTurtle.done()
+
 def pensize(width):                    _defaultTurtle.pensize(width)
 def color(pencolor, fillcolor = None): _defaultTurtle.color(pencolor, fillcolor)
 def home():                            _defaultTurtle.home()
@@ -1111,7 +1163,8 @@ def begin_fill():                      _defaultTurtle.begin_fill()
 def end_fill():                        _defaultTurtle.end_fill()
 def speed(speed):                      _defaultTurtle.speed(speed)
 def setheading(angle):                 _defaultTurtle.setheading(angle)
-
+def hideturtle():                      _defaultTurtle.hideturtle()
+def ht():                      _defaultTurtle.hideturtle()
 
 fd = forward
 bk = back
@@ -1214,24 +1267,20 @@ async def test_turtleps():
     ada.forward(100)
     #time.sleep(1)
     #await asyncio.sleep(1)
-    ada.done()
+    
     ada.left(90)
 
     #time.sleep(1)
-    ada.done()
-
+    
     ada.circle(40)
-    ada.done()
-
+    
     ada.forward(100)
 
     ada.color('blue')
     ada.write("La la", align="center", font=("Times New Roman", 24, "italic"))
-    ada.done()
     ada.left(90)
     ada.forward(100)
-    ada.done()
-
+    
     _info("TEST TURTLEPS: DONE...")
 
 async def test_fumetti():
@@ -1266,6 +1315,26 @@ async def test_fumetti():
     await dire(t, "Ciao9", 1)
     
     _info("TEST FUMETTI: DONE...")
+
+def test_big_star():
+    """from Python official examples (and without transcript done() calls)
+    """
+    up ()
+    goto (-250, -21)
+    startPos = pos ()
+
+    down ()
+    color ('red', 'yellow')
+    begin_fill ()
+    while True:
+        forward (500)
+
+        right (170)
+
+        if distance (startPos) < 1:
+            break
+    end_fill ()
+
 """
 screen = Screen()
 

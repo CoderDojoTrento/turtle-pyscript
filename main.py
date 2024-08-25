@@ -175,34 +175,28 @@ def check_type(arg, *types):
 #rettangolo.fill = "green"  # non funziona
 #update()
 
+#hideturtle()
 
-screen = Screen()
-screen.register_shape('img/turtle.svg')
+#test_big_star()
 
 
-up ()
-goto (-250, -21)
-startPos = pos ()
+#ada = Turtle()
+#ada.screen.register_shape('img/turtle.svg')
 
-down ()
-color ('red', 'yellow')
-begin_fill ()
-while True:
-    forward (500)
-    right (170)
-    if distance (startPos) < 1:
-        break
-end_fill ()
-done ()
+begin_fill()
+for i in range(4):
+    forward(100)
+    left(90)
+end_fill()
 
 #import time
 import asyncio
 
 # one after the other
-"""
-await test_turtleps()
-await test_fumetti()
-"""
+
+#await test_turtleps()
+#await test_fumetti()
+
 
 # CAN'T DO WHEN ALREADY IN AN EVENT LOOP
 """
@@ -214,10 +208,12 @@ asyncio.run(asyncio.gather(
 """
 
 # this works!
+"""
 asyncio.gather(
     
     test_turtleps(),
     test_fumetti(),
 )
-print("Io vengo eseguito IMMEDIATAMENTE DOPO!")
+"""
+print("Io vengo eseguito IMME DOPO!")
 
