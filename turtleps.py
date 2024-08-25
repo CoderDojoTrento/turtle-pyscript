@@ -1,3 +1,8 @@
+# ************             ATTENZIONE!                ******************** 
+# ************    _NON_ SCRIVERE IN QUESTO FILE !!    ********************
+#
+
+
 """
 Aug 2024:
 TURTLE MODULE TAKEN FROM transcrypt (apache licence)
@@ -12,6 +17,52 @@ NOTE: YOU DON'T NEED TRANSCRIPT, WE EXECUTE IT IN PYSCRIPT
 class TurtleGraphicsError(Exception):
     """Some TurtleGraphics Error
     """ 
+    pass
+
+class Vec2D(tuple):
+    """A 2 dimensional vector class, used as a helper class
+    for implementing turtle graphics.
+    May be useful for turtle graphics programs also.
+    Derived from tuple, so a vector is a tuple!
+
+    Provides (for a, b vectors, k number):
+       a+b vector addition
+       a-b vector subtraction
+       a*b inner product
+       k*a and a*k multiplication with scalar
+       |a| absolute value of a
+       a.rotate(angle) rotation
+    """
+    def __new__(cls, x, y):
+        return tuple.__new__(cls, (x, y))
+    def __add__(self, other):
+        return Vec2D(self[0]+other[0], self[1]+other[1])
+    def __mul__(self, other):
+        if isinstance(other, Vec2D):
+            return self[0]*other[0]+self[1]*other[1]
+        return Vec2D(self[0]*other, self[1]*other)
+    def __rmul__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            return Vec2D(self[0]*other, self[1]*other)
+        return NotImplemented
+    def __sub__(self, other):
+        return Vec2D(self[0]-other[0], self[1]-other[1])
+    def __neg__(self):
+        return Vec2D(-self[0], -self[1])
+    def __abs__(self):
+        return math.hypot(*self)
+    def rotate(self, angle):
+        """rotate self counterclockwise by angle
+        """
+        perp = Vec2D(-self[1], self[0])
+        angle = math.radians(angle)
+        c, s = math.cos(angle), math.sin(angle)
+        return Vec2D(self[0]*c+perp[0]*s, self[1]*c+perp[1]*s)
+    def __getnewargs__(self):
+        return (self[0], self[1])
+    def __repr__(self):
+        return "(%.2f,%.2f)" % self
+
 
 from js import (
     document,
@@ -25,8 +76,25 @@ from js import (
 
 import math
 
-#_debug = False
-_debug = True
+#_debugging = False
+_debugging = True
+#_tracing = True
+_tracing = False
+
+def _debug(*args):
+    if _debugging:
+        print("DEBUG:",*args)
+
+def _trace(*args):
+    if _tracing:
+        print("TRACE:",*args)
+        
+def _info(*args):
+    print("INFO:", *args)
+
+def _warn(*args):
+    print("WARN:", *args)
+
 
 
 #def abs (vec2D):
@@ -171,10 +239,11 @@ class Shape(object):
 
 class Screen:
     def __init__(self):
-        print("CDTN: Initializing screen...")
+        _debug("CDTN: Initializing screen...")
         self.svg = _svg
         self._turtles = []
-        
+        self._shapes = {}
+
         #self.canvwidth = w
         #self.canvheight = h
         #self.xscale = self.yscale = 1.0
@@ -218,6 +287,17 @@ class Screen:
         #    rootwindow = cv.winfo_toplevel()
         #    rootwindow.call('wm', 'attributes', '.', '-topmost', '1')
         #    rootwindow.call('wm', 'attributes', '.', '-topmost', '0')
+
+    def getshapes(self):
+        """Return a list of names of all currently available turtle shapes.
+
+        No argument.
+
+        Example (for a TurtleScreen instance named screen):
+        >>> screen.getshapes()
+        ['arrow', 'blank', 'circle', ... , 'turtle']
+        """
+        return sorted(self._shapes.keys())
 
     def clear(self):
         """Delete all drawings and all turtles from the TurtleScreen.
@@ -334,7 +414,7 @@ class Screen:
         """
         # TODO check double registration   
 
-        print(f"CDTN: Registering shape: name: {name}   shape:{shape}")
+        _debug(f"CDTN: Registering shape: name: {name}   shape:{shape}")
         
 
         defs = self.svg.getElementById("defs")
@@ -354,6 +434,7 @@ class Screen:
         the_shape.svg.setAttributeNS(None, 'id', name)
 
         defs.appendChild(the_shape.svg)
+        self._shapes[name] =  the_shape
 
     def _window_size(self):
         """ Return the width and height of the turtle window.
@@ -453,6 +534,38 @@ class Screen:
             color = self._color(color)
         return color    
 
+    def tracer(self, n=None, delay=None):
+        """Turns turtle animation on/off and set delay for update drawings.
+
+        Optional arguments:
+        n -- nonnegative  integer
+        delay -- nonnegative  integer
+
+        If n is given, only each n-th regular screen update is really performed.
+        (Can be used to accelerate the drawing of complex graphics.)
+        Second arguments sets delay value (see RawTurtle.delay())
+
+        Example (for a TurtleScreen instance named screen):
+        >>> screen.tracer(8, 25)
+        >>> dist = 2
+        >>> for i in range(200):
+        ...     fd(dist)
+        ...     rt(90)
+        ...     dist += 2
+        """
+        _warn("Turtle.tracer() is currently *NOT IMPLEMENTED*")
+        """
+        if n is None:
+            return self._tracing
+        self._tracing = int(n)
+        self._updatecounter = 0
+        if delay is not None:
+            self._delayvalue = int(delay)
+        if self._tracing:
+            self.update()
+        """
+
+
 _defaultScreen = Screen()
 
 
@@ -498,49 +611,40 @@ class Turtle:
                  shape=_CFG["shape"],  # NOTE: this is meant to be an id
                  visible=_CFG["visible"]):
         
-        shape_svg_id = f'#{shape}'
+        
         _allTurtles.append (self)
 
         self._position = [0,0] 
         self._paths = []
         self._track = []
-        self._shape = shape
+        
+
+        self._shown = True
         self._fill = False
         self._heading = 0
         
-        self._screen = _defaultScreen
-        self._screen._turtles.append(self)
+        self.screen = _defaultScreen
+        self.screen._turtles.append(self)
+
         #shape_node = document.getElementById(shape)
         #cloned_shape_node = shape_node.cloneNode(True)
-        #self._screen.svg.appendChild(cloned_shape_node)
+        #self.screen.svg.appendChild(cloned_shape_node)
 
         use_node = document.createElementNS (_ns, 'use')
+        use_node.setAttribute('id', f"turtle-{id(self)}")
+
         """
         <use href="#tree" x="50" y="100" />  
         """
-        use_node.setAttribute('href', shape_svg_id)
-        #use_node.setAttribute('x', 0 + _offset[0])  # setting this prevents polygon rotation from working
-        #use_node.setAttribute('y', 0 + _offset[1])
-        
-        shape_el = document.getElementById(shape)
-        
-        if shape_el.tagName == 'polygon':
-            use_node.setAttribute('fill', _CFG["fillcolor"])
-            use_node.setAttribute('stroke', _CFG["pencolor"])
-            use_node.setAttribute('stroke-width', 1)
-            use_node.setAttribute('fill-rule', 'evenodd')
-
-
-        use_node.setAttribute('id', f"turtle-{id(self)}")
-
-        use_node.setAttribute('transform', self._svg_transform())
         
         self.svg = use_node
 
-        self._screen.svg.appendChild(use_node)
+        self.screen.svg.appendChild(use_node)
+
+        self.shape(shape)
 
         self.reset()
-        print(f"{self._heading=}")
+        _trace(f"{self._heading=}")
 
     def _svg_transform(self):
 
@@ -548,10 +652,10 @@ class Turtle:
         tilt_fix = 0
         if shape_el.tagName == 'polygon':
             tilt_fix = -90   # polygons are designed pointing top, images look natural pointing right :-/
-            print(f"{tilt_fix=}")
+            _trace(f"{tilt_fix=}")
 
         rot = math.degrees(-self._heading) + tilt_fix
-        print(f"{rot=}")
+        _trace(f"{rot=}")
         return f"translate({self._position[0] + _offset[0]},{self._position[1] + _offset[1]}) rotate({rot})"
 
 
@@ -573,8 +677,8 @@ class Turtle:
         self._moveto(self._position)
 
     def _flush(self):
-        if _debug:
-            print('Flush:', self._track)
+        
+        _trace('Flush:', self._track)
 
         if len(self._track) > 1:
             path = document.createElementNS (_ns, 'path')
@@ -630,10 +734,18 @@ class Turtle:
         self._moveto(0, 0)
 
     def position(self):
-        return self._position[:]
+        #TODO CDTN self._position should natively be a Vec2D
+        return Vec2D(self._position[0], self._position[1]) 
 
     def pos(self):
         return self.position()
+    
+    def xcor(self):
+        return self._position[0]
+    
+    def ycor(self):
+        return self._position[1]
+    
 
     def distance(self, x, y = None):
         if y is None:
@@ -646,13 +758,13 @@ class Turtle:
 
         return math.sqrt (dX * dX + dY * dY)
 
-    def up(self):
+    def penup(self):
         self._down = False
 
-    def down(self):
+    def pendown(self):
         self._down = True
 
-    def isdown(self):
+    def isdown(self): 
         return self._down
 
     def _predict(self, length):
@@ -673,6 +785,7 @@ class Turtle:
     def back(self, length):
         self.forward(-length)
 
+    
 
     def circle(self, radius):
         self.left(90)
@@ -743,11 +856,11 @@ class Turtle:
         self._update_transform()
 
     def left(self, angle):
-        print(f"left: prev heading {self._heading}")
+        _trace(f"left: prev heading {self._heading}")
         
         self._heading = (self._heading + (angle * math.pi / 180.0)) % (2 * math.pi)
         
-        print(f"    : new heading {self._heading}")
+        _trace(f"    : new heading {self._heading}")
         self._update_transform()
 
     def right(self, angle): 
@@ -761,8 +874,46 @@ class Turtle:
         self._flush()
         self._fill = False
 
-    def speed(speed = None):
-        pass
+    def speed(self, speed=None):
+        """ Return or set the turtle's speed.
+
+        Optional argument:
+        speed -- an integer in the range 0..10 or a speedstring (see below)
+
+        Set the turtle's speed to an integer value in the range 0 .. 10.
+        If no argument is given: return current speed.
+
+        If input is a number greater than 10 or smaller than 0.5,
+        speed is set to 0.
+        Speedstrings  are mapped to speedvalues in the following way:
+            'fastest' :  0
+            'fast'    :  10
+            'normal'  :  6
+            'slow'    :  3
+            'slowest' :  1
+        speeds from 1 to 10 enforce increasingly faster animation of
+        line drawing and turtle turning.
+
+        Attention:
+        speed = 0 : *no* animation takes place. forward/back makes turtle jump
+        and likewise left/right make the turtle turn instantly.
+
+        Example (for a Turtle instance named turtle):
+        >>> turtle.speed(3)
+        """
+        _warn("Turtle.speed is not implemented yet")
+        """
+        speeds = {'fastest':0, 'fast':10, 'normal':6, 'slow':3, 'slowest':1 }
+        if speed is None:
+            return self._speed
+        if speed in speeds:
+            speed = speeds[speed]
+        elif 0.5 < speed < 10.5:
+            speed = int(round(speed))
+        else:
+            speed = 0
+        self.pen(speed=speed)
+        """
     
     def write(self, arg, move=False, align="left", font=("Arial", 8, "normal")):
         """Write text at the current turtle position.
@@ -810,7 +961,7 @@ class Turtle:
         """
         txt.setAttribute('style',  style)
         
-        self._screen.svg.appendChild(txt)
+        self.screen.svg.appendChild(txt)
 
 
         """
@@ -825,6 +976,79 @@ class Turtle:
             self.undobuffer.cumulate = False
         """
 
+    def hideturtle(self):
+        """Makes the turtle invisible.
+
+        Aliases: hideturtle | ht
+
+        No argument.
+
+        It's a good idea to do this while you're in the
+        middle of a complicated drawing, because hiding
+        the turtle speeds up the drawing observably.
+
+        Example (for a Turtle instance named turtle):
+        >>> turtle.hideturtle()
+        """
+        self.svg.setAttribute('visibility', 'hidden')
+        self._shown = False
+        #self.pen(shown=False)
+
+    def isvisible(self):
+        """Return True if the Turtle is shown, False if it's hidden.
+
+        No argument.
+
+        Example (for a Turtle instance named turtle):
+        >>> turtle.hideturtle()
+        >>> print(turtle.isvisible())
+        False
+        """
+        return self._shown
+
+    def shape(self, name=None):
+        """Set turtle shape to shape with given name / return current shapename.
+
+        Optional argument:
+        name -- a string, which is a valid shapename
+
+        Set turtle shape to shape with given name or, if name is not given,
+        return name of current shape.
+        Shape with name must exist in the TurtleScreen's shape dictionary.
+        Initially there are the following polygon shapes:
+        'arrow', 'turtle', 'circle', 'square', 'triangle', 'classic'.
+        To learn about how to deal with shapes see Screen-method register_shape.
+
+        Example (for a Turtle instance named turtle):
+        >>> turtle.shape()
+        'arrow'
+        >>> turtle.shape("turtle")
+        >>> turtle.shape()
+        'turtle'
+        """
+        if name is None:
+            return self._shape
+        if not name in self.screen.getshapes():
+            raise TurtleGraphicsError("There is no registered shape named %s" % name)
+        self._shape = name
+        shape_svg_id = f'#{name}'
+
+        self.svg.setAttribute('href', shape_svg_id)
+        #use_node.setAttribute('x', 0 + _offset[0])  # setting this prevents polygon rotation from working
+        #use_node.setAttribute('y', 0 + _offset[1])
+        
+        shape_el = document.getElementById(name)
+
+        if shape_el.tagName == 'polygon':
+            self.svg.setAttribute('fill', _CFG["fillcolor"])
+            self.svg.setAttribute('stroke', _CFG["pencolor"])
+            self.svg.setAttribute('stroke-width', 1)
+            self.svg.setAttribute('fill-rule', 'evenodd')
+
+        self.svg.setAttribute('transform', self._svg_transform())
+
+        #self._update()
+
     fd = forward
     bk = back
     backward = back
@@ -833,6 +1057,10 @@ class Turtle:
     setpos = goto
     setposition = goto
     seth = setheading
+    up = penup
+    pu = penup
+    down = pendown
+    
 
 
 
@@ -864,9 +1092,16 @@ def home():                            _defaultTurtle.home()
 def goto(x, y = None):                 _defaultTurtle.goto(x, y)
 def position(): return _defaultTurtle.position()
 def pos(): return _defaultTurtle.pos()
+def xcor(): return _defaultTurtle.xcor()
+def ycor(): return _defaultTurtle.ycor()
+
+
 def distance(x, y = None): return _defaultTurtle.distance(x, y)
-def up():                              _defaultTurtle.up()
-def down():                            _defaultTurtle.down()
+def penup():                              _defaultTurtle.penup()
+def pendown():                            _defaultTurtle.pendown()
+
+def up():                              _defaultTurtle.penup()
+def down():                            _defaultTurtle.pendown()
 def forward(length):                   _defaultTurtle.forward(length)
 def back(length):                      _defaultTurtle.back(length)
 def circle(radius):                    _defaultTurtle.circle(radius)
@@ -886,3 +1121,156 @@ lt = left
 setpos = goto
 setposition = goto
 seth = setheading
+
+
+
+"""
+
+Coderdojo Trento Game Engine
+
+Very minimal game engine which adds some convenience on top of turtleps
+Stuff is added only as functions on purpose, to avoid class stuff.
+
+Eventually, what follows will go into a separate file
+"""
+
+
+#from turtleps import *
+import asyncio
+
+
+class CDTNException(Exception):
+    pass
+
+""" Some renaming, turtle everywhere can get confusing
+"""
+class Sprite(Turtle):
+    pass
+
+
+def carica_immagine(sprite, immagine):
+    sprite.screen.register_shape(immagine)
+    sprite.shape(immagine)
+
+async def dire(sprite, testo, tempo, dx=0, dy=65):
+    tfumetto = Turtle()
+    sprite.screen.tracer(0)
+    tfumetto.speed(0)
+    tfumetto.hideturtle()
+    tfumetto.forward(0) # should bring it to front but in trinket it doesnt :-/
+    fontsize = 10
+    carw = 0.6 * fontsize
+    base = (len(testo)+2)*carw
+    alt = 20
+    tfumetto.penup()
+    x = sprite.xcor() + dx
+    y = sprite.ycor() + dy
+    if x + base > 200:
+        x = 200 - base
+    if y + alt > 200:
+        y = 200
+    if x < -200:
+        x = -200
+    if y < -200 + alt:
+        y = -200 + alt
+    tfumetto.goto(x, y)
+    tfumetto.pendown()
+    tfumetto.color("white")
+    tfumetto.setheading(0)
+    tfumetto.begin_fill()
+    for i in range(2):
+        tfumetto.forward(base)
+        tfumetto.right(90)
+        tfumetto.forward(alt)
+        tfumetto.right(90)
+    tfumetto.end_fill()
+    tfumetto.penup()
+    tfumetto.color("black")
+    tfumetto.forward(base / 2)
+    tfumetto.right(90)
+    tfumetto.forward(fontsize*1.5)
+    tfumetto.write(testo,
+                    align="center",
+                    font=('Arial', fontsize, 'normal'))
+    
+    sprite.screen.tracer(1)
+    await asyncio.sleep(tempo)
+    tfumetto.clear()
+
+
+async def test_turtleps():
+    _info("TEST TURTLEPS: BEGINNING...")
+    #ada = Turtle(shape='img/turtle.svg')
+    ada = Turtle()
+
+    #await asyncio.sleep(1)
+
+    #for i in range(3):
+    ada.color('green')
+    await dire(ada, "Ciao!", 3)
+
+
+    ada.write("Ciao mondo!", align="right", font=("Courier", 18, "bold"))
+    ada.forward(100)
+    #time.sleep(1)
+    #await asyncio.sleep(1)
+    ada.done()
+    ada.left(90)
+
+    #time.sleep(1)
+    ada.done()
+
+    ada.circle(40)
+    ada.done()
+
+    ada.forward(100)
+
+    ada.color('blue')
+    ada.write("La la", align="center", font=("Times New Roman", 24, "italic"))
+    ada.done()
+    ada.left(90)
+    ada.forward(100)
+    ada.done()
+
+    _info("TEST TURTLEPS: DONE...")
+
+async def test_fumetti():
+
+    _info("TEST FUMETTI: BEGINNING...")
+    t = Sprite()
+    t.speed(10)
+    carica_immagine(t, 'ch-archeologist1.gif')
+    
+    await dire(t, "abcdefghilmnopqrstuvzABCDEFGHILMNOPQRSTUVZ",2)
+    await dire(t, "Più in alto",2, dy = 120)
+    await dire(t, "Più in basso",2, dy = -120)
+    await dire(t, "Più a destra",2, dx = 120)
+    await dire(t, "Più a sinistra",2, dx = -120)
+    
+    await dire(t, "Ciao1", 1)
+    t.goto(-250, 0)
+    await dire(t, "Ciao2", 1)
+    t.goto(250, 0)
+    await dire(t, "Ciao3", 1)
+    t.goto(0, 250)
+    await dire(t, "Ciao4", 1)
+    t.goto(0, -250)
+    await dire(t, "Ciao5", 1)
+    t.goto(250, -250)
+    await dire(t, "Ciao6", 1)
+    t.goto(-250, 250)
+    await dire(t, "Ciao7", 1)
+    t.goto(-250, -250)
+    await dire(t, "Ciao8", 1)
+    t.goto(250, 250)
+    await dire(t, "Ciao9", 1)
+    
+    _info("TEST FUMETTI: DONE...")
+"""
+screen = Screen()
+
+if hasattr(screen, "colormode"):
+    #print("Setting screen.colormode to 255")
+    screen.colormode(255)  # this is Trinket default, see https://github.com/CoderDojoTrento/turtle-storytelling/issues/2
+"""
+

@@ -198,31 +198,26 @@ done ()
 #import time
 import asyncio
 
-#ada = Turtle(shape='img/turtle.svg')
-ada = Turtle()
+# one after the other
+"""
+await test_turtleps()
+await test_fumetti()
+"""
 
-#await asyncio.sleep(1)
+# CAN'T DO WHEN ALREADY IN AN EVENT LOOP
+"""
+asyncio.run(asyncio.gather(
+    
+    test_turtleps(),
+    test_fumetti(),
+))
+"""
 
-#for i in range(3):
-ada.color('green')
-ada.write("Ciao mondo!", align="right", font=("Courier", 18, "bold"))
-ada.forward(100)
-#time.sleep(1)
-#await asyncio.sleep(1)
-ada.done()
-ada.left(90)
+# this works!
+asyncio.gather(
+    
+    test_turtleps(),
+    test_fumetti(),
+)
+print("Io vengo eseguito IMMEDIATAMENTE DOPO!")
 
-#time.sleep(1)
-ada.done()
-
-ada.circle(40)
-ada.done()
-
-ada.forward(100)
-
-ada.color('blue')
-ada.write("La la", align="center", font=("Times New Roman", 24, "italic"))
-ada.done()
-ada.left(90)
-ada.forward(100)
-ada.done()
