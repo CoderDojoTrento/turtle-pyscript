@@ -183,11 +183,7 @@ def check_type(arg, *types):
 #ada = Turtle()
 #ada.screen.register_shape('img/turtle.svg')
 
-begin_fill()
-for i in range(4):
-    forward(100)
-    left(90)
-end_fill()
+test_colors()
 
 #import time
 import asyncio

@@ -64,6 +64,20 @@ class Vec2D(tuple):
         return "(%.2f,%.2f)" % self
 
 
+def _parse_color_args(*args):
+    if len(args) == 1:
+        if isinstance(args[0], tuple):
+            svg_color = f"rgb({','.join([str(a) for a in args[0]])})"
+        elif isinstance(args[0], str):
+            svg_color = args[0]
+        else:
+            raise TurtleGraphicsError(f"Unrecognized color format: {args[0]}")    
+    elif len(args) == 3:
+        svg_color = f"rgb({','.join([str(a) for a in args])})"
+    else:
+        raise TurtleGraphicsError(f"Unrecognized color format: {args}")
+    return svg_color
+
 from js import (
     document,
     window
@@ -487,70 +501,13 @@ class Screen:
         return self._window_size()[1]
     
     def _iscolorstring(self, color):
-        """Check if the string color is a legal Tkinter color string.
+        """Check if the string color is a legal SVG color string.
         """
         #CDTN TODO Too optimistic
         return True
+ 
     
-    def _colorstr(self, color):
-        """Return color string corresponding to args.
-
-        Argument may be a string or a tuple of three
-        numbers corresponding to actual colormode,
-        i.e. in the range 0<=n<=colormode.
-
-        If the argument doesn't represent a color,
-        an error is raised.
-        """
-        if len(color) == 1:
-            color = color[0]
-        if isinstance(color, str):
-            if self._iscolorstring(color) or color == "":
-                return color
-            else:
-                raise TurtleGraphicsError("bad color string: %s" % str(color))
-        try:
-            r, g, b = color
-        except (TypeError, ValueError):
-            raise TurtleGraphicsError("bad color arguments: %s" % str(color))
-        if self._colormode == 1.0:
-            r, g, b = [round(255.0*x) for x in (r, g, b)]
-        if not ((0 <= r <= 255) and (0 <= g <= 255) and (0 <= b <= 255)):
-            raise TurtleGraphicsError("bad color sequence: %s" % str(color))
-        return "#%02x%02x%02x" % (r, g, b)
-
     
-    def _bgcolor(self, color=None):
-        """Set canvas' backgroundcolor if color is not None,
-        else return backgroundcolor."""
-    
-        if color:
-            self.svg.style.setProperty("background-color",  color)
-        else:
-            return self.svg.style["background-color"] 
-        
-    def bgcolor(self, *args):
-        """Set or return backgroundcolor of the TurtleScreen.
-
-        Arguments (if given): a color string or three numbers
-        in the range 0..colormode or a 3-tuple of such numbers.
-
-        Example (for a TurtleScreen instance named screen):
-        >>> screen.bgcolor("orange")
-        >>> screen.bgcolor()
-        'orange'
-        >>> screen.bgcolor(0.5,0,0.5)
-        >>> screen.bgcolor()
-        '#800080'
-        """
-        if args:
-            color = self._colorstr(args)
-        else:
-            color = None
-        color = self._bgcolor(color)
-        if color is not None:
-            color = self._color(color)
-        return color    
 
     def tracer(self, n=None, delay=None):
         """Turns turtle animation on/off and set delay for update drawings.
@@ -583,6 +540,16 @@ class Screen:
             self.update()
         """
 
+    def bgcolor(self, *args):
+        if len(args) == 0:
+            return self._bgcolor
+        
+        if len(args) == 0:
+            return self.svg.style["background-color"] 
+        else:
+            s = _parse_color_args(*args)    
+            self.svg.style.setProperty("background-color",  s)
+            
 
 _defaultScreen = Screen()
 
@@ -746,10 +713,67 @@ class Turtle:
 
     def color(self, pencolor, fillcolor = None):
         #self._flush()
-        self._pencolor = pencolor
+        self.pencolor(pencolor)
 
         if fillcolor is not None:
-            self._fillcolor = fillcolor
+            self.fillcolor(fillcolor)
+
+    def _colorstr(self, color):
+        """Return color string corresponding to args.
+
+        Argument may be a string or a tuple of three
+        numbers corresponding to actual colormode,
+        i.e. in the range 0<=n<=colormode.
+
+        If the argument doesn't represent a color,
+        an error is raised.
+        """
+        if len(color) == 1:
+            color = color[0]
+        if isinstance(color, str):
+            if self._iscolorstring(color) or color == "":
+                return color
+            else:
+                raise TurtleGraphicsError("bad color string: %s" % str(color))
+        try:
+            r, g, b = color
+        except (TypeError, ValueError):
+            raise TurtleGraphicsError("bad color arguments: %s" % str(color))
+        if self._colormode == 1.0:
+            r, g, b = [round(255.0*x) for x in (r, g, b)]
+        if not ((0 <= r <= 255) and (0 <= g <= 255) and (0 <= b <= 255)):
+            raise TurtleGraphicsError("bad color sequence: %s" % str(color))
+        return "#%02x%02x%02x" % (r, g, b)
+
+    def _color(self, cstr):
+        if not cstr.startswith("#"):
+            return cstr
+        if len(cstr) == 7:
+            cl = [int(cstr[i:i+2], 16) for i in (1, 3, 5)]
+        elif len(cstr) == 4:
+            cl = [16*int(cstr[h], 16) for h in cstr[1:]]
+        else:
+            raise TurtleGraphicsError("bad colorstring: %s" % cstr)
+        return tuple(c * self._colormode/255 for c in cl)
+
+    def pencolor(self, *args):
+        
+        if len(args) == 0:
+            return self._pencolor
+        else:
+            s = _parse_color_args(*args)
+            self._pencolor = s
+            self.svg.style.setProperty("background-color",  s)
+            self._create_track()   # CDTN TODO hack so we can show path with segments of different colors
+
+    def fillcolor(self, *args):
+        if len(args) == 0:
+            return self._fillcolor
+        else:
+            s = _parse_color_args(*args)
+            self._fillcolor = s
+            #TODO change some svg property??
+
 
     def goto(self, x, y = None):
         if y is None:
@@ -1165,6 +1189,9 @@ def speed(speed):                      _defaultTurtle.speed(speed)
 def setheading(angle):                 _defaultTurtle.setheading(angle)
 def hideturtle():                      _defaultTurtle.hideturtle()
 def ht():                      _defaultTurtle.hideturtle()
+def pencolor(*args):           _defaultTurtle.pencolor(*args)
+def fillcolor(*args):          _defaultTurtle.fillcolor(*args)
+def bgcolor(*args):      _defaultTurtle.bgcolor(*args) 
 
 fd = forward
 bk = back
@@ -1334,6 +1361,84 @@ def test_big_star():
         if distance (startPos) < 1:
             break
     end_fill ()
+
+def test_colors():
+    pensize(5)
+    up()
+    goto(-200,-110)
+    down()
+    pencolor(255,0,0)
+    forward(100)
+    pencolor((0,255,0))
+    forward(100)
+    pencolor((0,0,255))
+    forward(100)
+    pencolor('purple')
+    forward(100)
+    print('pencolor:', pencolor())
+    print('fillcolor:', fillcolor())
+
+    pencolor('yellow')
+    fillcolor(255,0,0)
+
+    up()
+    goto(-50,0)
+    down()
+    begin_fill()
+    for i in range(4):
+        forward(50)
+        left(90)
+    end_fill()
+
+    pencolor('cyan')
+    fillcolor((0,255,0))
+
+    up()
+    goto(0,-50)
+    down()
+    begin_fill()
+    for i in range(4):
+        forward(50)
+        left(90)
+    end_fill()
+
+    pencolor('orange')
+    fillcolor((0,0,255))
+
+    up()
+    goto(50,0)
+    down()
+    begin_fill()
+    for i in range(4):
+        forward(50)
+        left(90)
+    end_fill()
+
+    pencolor('grey')
+    fillcolor('purple')
+
+    up()
+    goto(0,50)
+    down()
+    begin_fill()
+    for i in range(4):
+        forward(50)
+        left(90)
+    end_fill()
+
+
+def test_quadrato_pieno():
+    begin_fill()
+    pencolor('red')
+    fillcolor('green')
+    print('pencolor:', pencolor())
+    print('fillcolor:', fillcolor())
+
+    begin_fill()
+    for i in range(4):
+        forward(100)
+        left(90)
+    end_fill()
 
 """
 screen = Screen()
