@@ -128,7 +128,7 @@ _CFG = {"width" : 0.5,               # Screen
         "shape": "classic",
         "pencolor" : "black",
         "fillcolor" : "black",
-        "resizemode" : "noresize",
+        "resizemode" : "noresize",   # CDTN: why? I would expect "user"
         "visible" : True,
         "language": "english",        # docstrings
         "exampleturtle": "turtle",
@@ -208,8 +208,8 @@ class Shape(object):
             img = document.createElementNS(_ns, 'image')
             img.setAttributeNS(None, 'x', 0)
             img.setAttributeNS(None, 'y', 0)
-            img.setAttributeNS(None, 'width', 20)
-            img.setAttributeNS(None, 'height', 20)
+            #img.setAttributeNS(None, 'width', 20)
+            #img.setAttributeNS(None, 'height', 20)
             #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
             img.setAttributeNS(None, 'href', data)
             
@@ -600,6 +600,7 @@ class Turtle:
         _allTurtles.append (self)
 
         self._position = [0,0] 
+        self._stretchfactor = (1., 1.)
         self._paths = []
         self._track = []
         
@@ -645,7 +646,10 @@ class Turtle:
 
         rot = math.degrees(-self._heading) + tilt_fix
         _trace(f"{rot=}")
-        return f"translate({self._position[0] + _offset[0]},{self._position[1] + _offset[1]}) rotate({rot})"
+        scale = f"{self._stretchfactor[0]},{self._stretchfactor[1]}"
+
+        return f"translate({self._position[0] + _offset[0]},{self._position[1] + _offset[1]}) rotate({rot}) scale({scale})"
+    
 
     def _create_track(self):
         _debug("Creating new _track_svg_path")
@@ -667,6 +671,7 @@ class Turtle:
 
     def reset(self):
         self._heading = 0
+        self._stretchfactor = (1., 1.)
         self.down ()
         self.color ('black', 'black')
         self.pensize (1)
@@ -904,6 +909,7 @@ class Turtle:
     
     def _update_transform(self):
         self.svg.setAttribute('transform', self._svg_transform())
+        #self.svg.setAttribute('transform-origin','center center');
 
     def setheading(self, to_angle):
         """Set the orientation of the turtle to to_angle.
@@ -957,33 +963,9 @@ class Turtle:
         
         
     def speed(self, speed=None):
-        """ Return or set the turtle's speed.
-
-        Optional argument:
-        speed -- an integer in the range 0..10 or a speedstring (see below)
-
-        Set the turtle's speed to an integer value in the range 0 .. 10.
-        If no argument is given: return current speed.
-
-        If input is a number greater than 10 or smaller than 0.5,
-        speed is set to 0.
-        Speedstrings  are mapped to speedvalues in the following way:
-            'fastest' :  0
-            'fast'    :  10
-            'normal'  :  6
-            'slow'    :  3
-            'slowest' :  1
-        speeds from 1 to 10 enforce increasingly faster animation of
-        line drawing and turtle turning.
-
-        Attention:
-        speed = 0 : *no* animation takes place. forward/back makes turtle jump
-        and likewise left/right make the turtle turn instantly.
-
-        Example (for a Turtle instance named turtle):
-        >>> turtle.speed(3)
-        """
+        
         _warn("Turtle.speed is not implemented yet")
+        
         """
         speeds = {'fastest':0, 'fast':10, 'normal':6, 'slow':3, 'slowest':1 }
         if speed is None:
@@ -996,7 +978,26 @@ class Turtle:
             speed = 0
         self.pen(speed=speed)
         """
+
+    def shapesize(self, stretch_wid=None, stretch_len=None):
+        if stretch_wid is stretch_len is None:
+            stretch_wid, stretch_len = self._stretchfactor
+            return stretch_wid, stretch_len
+        if stretch_wid == 0 or stretch_len == 0:
+            raise TurtleGraphicsError("stretch_wid/stretch_len must not be zero")
+        if stretch_wid is not None:
+            if stretch_len is None:
+                stretchfactor = stretch_wid, stretch_wid
+            else:
+                stretchfactor = stretch_wid, stretch_len
+        elif stretch_len is not None:
+            stretchfactor = self._stretchfactor[0], stretch_len
+        else:
+            stretchfactor = self._stretchfactor
     
+        self._stretchfactor = stretchfactor
+        self._update_transform()
+
     def write(self, arg, move=False, align="left", font=("Arial", 8, "normal")):
         """Write text at the current turtle position.
 
@@ -1143,7 +1144,7 @@ class Turtle:
     up = penup
     pu = penup
     down = pendown
-    
+    turtlesize = shapesize    
 
 
 
@@ -1198,6 +1199,7 @@ def hideturtle():                      _defaultTurtle.hideturtle()
 def ht():                      _defaultTurtle.hideturtle()
 def pencolor(*args):           _defaultTurtle.pencolor(*args)
 def fillcolor(*args):          _defaultTurtle.fillcolor(*args)
+def shapesize(self, stretch_wid=None, stretch_len=None):          _defaultTurtle.shapesize(stretch_wid, stretch_len)
 
 
 fd = forward
@@ -1208,7 +1210,7 @@ lt = left
 setpos = goto
 setposition = goto
 seth = setheading
-
+turtlesize = shapesize
 
 
 """
@@ -1287,13 +1289,20 @@ async def dire(sprite, testo, tempo, dx=0, dy=65):
 
 async def test_turtleps():
     _info("TEST TURTLEPS: BEGINNING...")
-    #ada = Turtle(shape='img/turtle.svg')
+    
     ada = Turtle()
+
+    ada.screen.register_shape('img/turtle.svg')
+    ada.shape('img/turtle.svg')
 
     #await asyncio.sleep(1)
 
+    print("shapesize:", ada.shapesize())
     #for i in range(3):
     ada.color('green')
+    ada.shapesize(3,15.7)
+    print("shapesize:", ada.shapesize())
+    
     await dire(ada, "Ciao!", 3)
 
 
