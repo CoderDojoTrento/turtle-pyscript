@@ -1283,11 +1283,11 @@ async def dire(sprite, testo, tempo, dx=0, dy=65):
     tfumetto.hideturtle()
     tfumetto.forward(0) # should bring it to front but in trinket it doesnt :-/
     fontsize = 15
-    carw = 0.6 * fontsize
+    carw = 0.5 * fontsize
     base = (len(testo)+2)*carw
     alt = 28
     tfumetto.penup()
-    x = sprite.xcor() + dx
+    x = sprite.xcor() + dx - base//3
     y = sprite.ycor() + dy
     if x + base > 200:
         x = 200 - base

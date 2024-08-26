@@ -179,7 +179,7 @@ from tests import *
 
 #test_big_star()
 
-#await test_storytelling()
+await test_storytelling()
 
 #await test_quadrato_pieno()
 
@@ -188,7 +188,7 @@ from tests import *
 #await test_fumetti_piu()
 
 
-test_text()
+#test_text()
 #test_colors()
 
 
