@@ -141,6 +141,10 @@ _CFG = {"width" : 400, # 0.5,               # Screen
 _ns = 'http://www.w3.org/2000/svg'
 _svg = document.createElementNS (_ns, 'svg')
 
+_svg.style.setProperty('border-style','solid')
+_svg.style.setProperty('border-color','lightgrey')
+
+
 _defs = document.createElementNS (_ns, 'defs')
 _defs.setAttributeNS(None, 'id', 'defs')
 _svg.appendChild(_defs)
@@ -641,7 +645,7 @@ class Turtle:
         rot = math.degrees(-self._heading) + tilt_fix
         _trace(f"{rot=}")
         scale = f"{self._stretchfactor[0]},{self._stretchfactor[1]}"
-        translate = f"{self._position[0] + self.screen._offset[0]},{self._position[1] + self.screen._offset[1]}"
+        translate = f"{self._position[0] + self.screen._offset[0]},{self.screen._offset[1] - self._position[1]}"
 
         return f"translate({translate}) rotate({rot}) scale({scale})"
     
@@ -653,7 +657,7 @@ class Turtle:
         self._track.append('{} {} {}'.format(
             'M',
             self._position[0] + self.screen._offset[0],
-            self._position[1] + self.screen._offset[1])
+            self.screen._offset[1] - self._position[1])
         )
 
         tsp = document.createElementNS(_ns, 'path')
@@ -780,27 +784,6 @@ class Turtle:
             #TODO change some svg property??
 
 
-    def goto(self, x, y = None):
-        if y is None:
-            self._position = x
-        else:
-            self._position = [x, y]
-
-        self._track.append('{} {} {}'.format(
-            'L' if self._down else 'M',
-            self._position[0] + self.screen._offset[0],
-            self._position[1] + self.screen._offset[1])
-        )
-
-        self._update_transform()
-        self._flush()
-
-    def _moveto(self, x, y = None):
-        wasdown = self.isdown()
-        self.up()
-        self.goto(x, y)
-        if wasdown:
-            self.down()
 
     def home(self):
         self._moveto(0, 0)
@@ -839,10 +822,34 @@ class Turtle:
     def isdown(self): 
         return self._down
 
+    def goto(self, x, y = None):
+        if y is None:
+            self._position = x
+        else:
+            self._position = [x, y]
+
+
+        self._track.append('{} {} {}'.format(
+            'L' if self._down else 'M',
+            self._position[0] + self.screen._offset[0],
+            self.screen._offset[1] - self._position[1])
+        )
+
+        self._update_transform()
+        self._flush()
+
+    def _moveto(self, x, y = None):
+        wasdown = self.isdown()
+        self.up()
+        self.goto(x, y)
+        if wasdown:
+            self.down()
+
+
     def _predict(self, length):
         corrected_heading = self._heading + math.pi/2
         delta = [math.sin(corrected_heading), math.cos(corrected_heading)]
-        return [self._position[0] + length * delta[0], self._position[1] + length * delta[1]]
+        return [self._position[0] + length * delta[0], self._position[1] - length * delta[1]]
 
     def forward(self, length):
         self._position = self._predict(length)
@@ -850,8 +857,8 @@ class Turtle:
         self._track.append('{} {} {}'.format(
             'L' if self._down else 'M',
             self._position[0] + self.screen._offset[0],
-            self._position[1] + self.screen._offset[1])
-        )
+            self.screen._offset[1] - self._position[1])   
+         )
         self._update_transform()
         self._flush()
 
@@ -866,7 +873,7 @@ class Turtle:
         """
         dot = document.createElementNS (_ns, 'circle')
         dot.setAttribute('cx', self._position[0] + self.screen._offset[0])
-        dot.setAttribute('cy', self._position[1] + self.screen._offset[1])
+        dot.setAttribute('cy', self.screen._offset[1] - self._position[1])
         dot.setAttribute('r', radius)
         dot.setAttribute('fill', self._fillcolor)
         dot.setAttribute('stroke', self._pencolor)
@@ -881,7 +888,7 @@ class Turtle:
         """
         circle = document.createElementNS (_ns, 'circle')
         circle.setAttribute('cx', self._position[0] + self.screen._offset[0])
-        circle.setAttribute('cy', self._position[1] + self.screen._offset[1])
+        circle.setAttribute('cy', self.screen._offset[1] - self._position[1] )
         circle.setAttribute('r', radius)
         circle.setAttribute('fill', 'none')
         circle.setAttribute('stroke', self._pencolor)
@@ -993,12 +1000,11 @@ class Turtle:
         self._stretchfactor = stretchfactor
         self._update_transform()
 
-    def write(self, arg, move=False, align="left", font=("Arial", 8, "normal")):
+    def write(self, arg, align="left", font=("Arial", 8, "normal")):
         """Write text at the current turtle position.
 
         Arguments:
         arg -- info, which is to be written to the TurtleScreen
-        move (optional) -- True/False
         align (optional) -- one of the strings "left", "center" or right"
         font (optional) -- a triple (fontname, fontsize, fonttype)
 
@@ -1012,12 +1018,13 @@ class Turtle:
         >>> turtle.write('Home = ', True, align="center")
         >>> turtle.write((0,0), True)
         """
+        #CDTN missing boolean move argument
         """
         <text x="20" y="35" class="small">My</text>
         """
         txt = document.createElementNS (_ns, 'text')
         txt.setAttribute('x', self._position[0] + self.screen._offset[0])
-        txt.setAttribute('y', self._position[1] + self.screen._offset[1])
+        txt.setAttribute('y', self.screen._offset[1] - self._position[1])
         txt.textContent = arg
 
         #for now let's use text-anchor https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/text-anchor
@@ -1035,7 +1042,8 @@ class Turtle:
                     font-size: {font[1]}px; 
                     fill: {self._pencolor};
                     text-anchor:{text_anchor};
-                    alignment-baseline:central;
+                    #alignment-baseline:central; #different in Turtle!
+                    alignment-baseline:baseline;   
         """
         txt.setAttribute('style',  style)
         
@@ -1193,7 +1201,10 @@ def showturtle():                      _defaultScreen._defaultTurtle.showturtle(
 def st():                      _defaultScreen._defaultTurtle.showturtle()
 def pencolor(*args):           _defaultScreen._defaultTurtle.pencolor(*args)
 def fillcolor(*args):          _defaultScreen._defaultTurtle.fillcolor(*args)
-def shapesize(self, stretch_wid=None, stretch_len=None):          _defaultScreen._defaultTurtle.shapesize(stretch_wid, stretch_len)
+def shapesize(stretch_wid=None, stretch_len=None):          _defaultScreen._defaultTurtle.shapesize(stretch_wid, stretch_len)
+def dot(radius):     _defaultScreen._defaultTurtle.dot(radius)
+def circle(radius):     _defaultScreen._defaultTurtle.circle(radius)
+def write(arg, align="left", font=("Arial", 8, "normal")): _defaultScreen._defaultTurtle.write(arg, align=align, font=font)
 
 
 fd = forward
@@ -1259,15 +1270,22 @@ def carica_immagine(sprite, immagine):
     sprite.shape(immagine)
 
 async def dire(sprite, testo, tempo, dx=0, dy=65):
+    #if dy == None:
+        #_debug(f"sprite.svg")
+        #_debug(f"{sprite.svg.getBBox()=}")
+        
+        #dy = sprite.svg.getBBox().height()  # gives weird TypeError int 
+        #_debug(f"{dy=}")
+    
     tfumetto = Turtle()
     sprite.screen.tracer(0)
     tfumetto.speed(0)
     tfumetto.hideturtle()
     tfumetto.forward(0) # should bring it to front but in trinket it doesnt :-/
-    fontsize = 10
+    fontsize = 15
     carw = 0.6 * fontsize
     base = (len(testo)+2)*carw
-    alt = 20
+    alt = 28
     tfumetto.penup()
     x = sprite.xcor() + dx
     y = sprite.ycor() + dy
@@ -1281,7 +1299,9 @@ async def dire(sprite, testo, tempo, dx=0, dy=65):
         y = -200 + alt
     tfumetto.goto(x, y)
     tfumetto.pendown()
-    tfumetto.color("white")
+    tfumetto.pencolor("black")
+    tfumetto.fillcolor("white")
+    
     tfumetto.setheading(0)
     tfumetto.begin_fill()
     for i in range(2):
@@ -1294,230 +1314,14 @@ async def dire(sprite, testo, tempo, dx=0, dy=65):
     tfumetto.color("black", "white")
     tfumetto.forward(base / 2)
     tfumetto.right(90)
-    tfumetto.forward(fontsize*1.5)
+    tfumetto.forward(fontsize*1.2)
     tfumetto.write(testo,
-                    align="center",
-                    font=('Arial', fontsize, 'normal'))
+                   align="center",
+                   font=('Arial', fontsize, 'normal'))
     
     sprite.screen.tracer(1)
     await asyncio.sleep(tempo)
     tfumetto.clear()
-
-
-async def test_turtleps():
-    _info("TEST TURTLEPS: BEGINNING...")
-    
-    ada = Turtle()
-
-    ada.screen.register_shape('img/turtle.svg')
-    ada.shape('img/turtle.svg')
-
-    #await asyncio.sleep(1)
-
-    print("shapesize:", ada.shapesize())
-    #for i in range(3):
-    ada.color('green')
-    ada.shapesize(3,15.7)
-    print("shapesize:", ada.shapesize())
-    
-    await dire(ada, "Ciao!", 3)
-
-
-    ada.write("Ciao mondo!", align="right", font=("Courier", 18, "bold"))
-    ada.forward(100)
-    #time.sleep(1)
-    #await asyncio.sleep(1)
-    
-    ada.left(90)
-
-    #time.sleep(1)
-    
-    ada.dot(40)
-    
-    ada.forward(100)
-    ada.color('blue')
-
-    ada.circle(20)
-    ada.write("La la", align="center", font=("Times New Roman", 24, "italic"))
-    ada.left(90)
-    ada.forward(100)
-    
-    _info("TEST TURTLEPS: DONE...")
-
-async def test_fumetti():
-
-    _info("TEST FUMETTI: BEGINNING...")
-    t = Sprite()
-    t.speed(10)
-    carica_immagine(t, 'img/ch-archeologist1.gif')
-    
-    await dire(t, "abcdefghilmnopqrstuvzABCDEFGHILMNOPQRSTUVZ",2)
-    await dire(t, "Più in alto",2, dy = 120)
-    await dire(t, "Più in basso",2, dy = -120)
-    await dire(t, "Più a destra",2, dx = 120)
-    await dire(t, "Più a sinistra",2, dx = -120)
-    
-    await dire(t, "Ciao1", 1)
-    t.goto(-250, 0)
-    await dire(t, "Ciao2", 1)
-    t.goto(250, 0)
-    await dire(t, "Ciao3", 1)
-    t.goto(0, 250)
-    await dire(t, "Ciao4", 1)
-    t.goto(0, -250)
-    await dire(t, "Ciao5", 1)
-    t.goto(250, -250)
-    await dire(t, "Ciao6", 1)
-    t.goto(-250, 250)
-    await dire(t, "Ciao7", 1)
-    t.goto(-250, -250)
-    await dire(t, "Ciao8", 1)
-    t.goto(250, 250)
-    await dire(t, "Ciao9", 1)
-    
-    _info("TEST FUMETTI: DONE...")
-
-def test_big_star():
-    """from Python official examples (and without transcript done() calls)
-    """
-    up ()
-    goto (-250, -21)
-    startPos = pos ()
-
-    down ()
-    color ('red', 'yellow')
-    begin_fill ()
-    while True:
-        forward (500)
-
-        right (170)
-
-        if distance (startPos) < 1:
-            break
-    end_fill ()
-
-def test_colors():
-    pensize(5)
-    up()
-    goto(-200,-110)
-    down()
-    pencolor(255,0,0)
-    forward(100)
-    pencolor((0,255,0))
-    forward(100)
-    pencolor((0,0,255))
-    forward(100)
-    pencolor('purple')
-    forward(100)
-    print('pencolor:', pencolor())
-    print('fillcolor:', fillcolor())
-
-    pencolor('yellow')
-    fillcolor(255,0,0)
-
-    up()
-    goto(-50,0)
-    down()
-    begin_fill()
-    for i in range(4):
-        forward(50)
-        left(90)
-    end_fill()
-
-    pencolor('cyan')
-    fillcolor((0,255,0))
-
-    up()
-    goto(0,-50)
-    down()
-    begin_fill()
-    for i in range(4):
-        forward(50)
-        left(90)
-    end_fill()
-
-    pencolor('orange')
-    fillcolor((0,0,255))
-
-    up()
-    goto(50,0)
-    down()
-    begin_fill()
-    for i in range(4):
-        forward(50)
-        left(90)
-    end_fill()
-
-    pencolor('grey')
-    fillcolor('purple')
-
-    up()
-    goto(0,50)
-    down()
-    begin_fill()
-    for i in range(4):
-        forward(50)
-        left(90)
-    end_fill()
-
-
-def test_quadrato_pieno():
-    begin_fill()
-    pencolor('red')
-    fillcolor('green')
-    print('pencolor:', pencolor())
-    print('fillcolor:', fillcolor())
-
-    begin_fill()
-    for i in range(4):
-        forward(100)
-        left(90)
-    end_fill()
-
-async def test_storytelling():
-    hideturtle()  # nasconde quella di default
-
-    ada = Turtle()                                # crea una NUOVA tartaruga
-    ada.hideturtle()
-    ada.screen.bgpic("img/bg-seaside-2.gif") 
-
-    carica_immagine(ada, "img/ch-archeologist-e.gif")  # nostro comando speciale
-    ada.penup()                                   # su la penna!
-    ada.goto(-100,0)                              # spostati sul lato sinistro
-    ada.showturtle()                                
-
-    bob = Turtle()
-    bob.hideturtle()
-    carica_immagine(bob, "img/ch-arctic-big-w.gif")
-    bob.penup()
-    bob.goto(100,0)
-    bob.showturtle()
-
-    await dire(ada, "Ciao! Io sono Ada!", 3)
-    await dire(ada, "Tu come ti chiami?", 3)
-    await dire(bob,"Io sono Bob!", 2)
-    await dire(bob,"Mi sono perso!", 3)
-    await dire(ada,"Si vede!", 2)
-    await dire(ada,"Esploriamo la foresta?", 4)
-    await dire(bob,"Ok!", 2)
-    bob.goto(250, 0)
-    ada.goto(250, 0)
-
-    ada.screen.bgpic("img/bg-forest-1.gif")
-    ada.speed(0)   # velocissima
-    bob.speed(0)   # velocissimo
-    bob.goto(-200, 0)
-    ada.goto(-200, 0)
-    ada.speed(5)   # normale
-    bob.speed(5)   # normale
-    ada.goto(-100, -0)
-    bob.goto(100, -0)
-
-    await dire(ada,"Qua fa più fresco!", 3)
-    await dire(bob,"Per me è ancora troppo caldo!", 6)
-
-
-
 
 
 

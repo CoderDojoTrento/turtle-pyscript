@@ -166,7 +166,7 @@ def check_type(arg, *types):
         
 
 
-
+from tests import *
 
 #sprite = ada
 #init(ada, append=True)
@@ -179,7 +179,18 @@ def check_type(arg, *types):
 
 #test_big_star()
 
-await test_storytelling()
+#await test_storytelling()
+
+#await test_quadrato_pieno()
+
+#await test_fumetti_ciao()
+
+#await test_fumetti_piu()
+
+
+test_text()
+#test_colors()
+
 
 """
 ada = Turtle()
@@ -188,7 +199,6 @@ ada.shape('img/turtle.svg')
 ada.shapesize(0.5)
 ada.forward(150)
 """
-#test_colors()
 
 #import time
 import asyncio
