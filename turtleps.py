@@ -115,8 +115,8 @@ def _warn(*args):
 #    return Math.sqrt (vec2D [0] * vec2D [0] + vec2D [1] * vec2D [1])
 
 
-_CFG = {"width" : 0.5,               # Screen
-        "height" : 0.75,
+_CFG = {"width" : 400, # 0.5,               # Screen
+        "height" : 400, # 0.75,
         "canvwidth" : 400,
         "canvheight": 300,
         "leftright": None,
@@ -274,9 +274,9 @@ class Screen:
         self._turtles = []
         self._shapes = {}
 
-        self._width = None
-        self._height = None
-        self._offset = None
+        self._width = _CFG["width"]
+        self._height = _CFG["height"]
+        self._offset = [_CFG["width"]//2, _CFG["height"]//2]
 
 
         #self.canvwidth = w
@@ -384,8 +384,8 @@ class Screen:
 
     def setup(self, width=_CFG["width"], height=_CFG["height"]):
         
-        #self.svg.setAttribute('viewBox', f'0 0 {width} {height}')
-        self._width = width
+        #self.svg.setAttribute('viewBox', f'200 200 {width} {height}')
+        self._width  = width
         self._height = height
         
         self.update()
@@ -393,8 +393,8 @@ class Screen:
     def update(self):
         """Perform a TurtleScreen update.
         """
-        self._width = _defaultElement.offsetWidth
-        self._height = _defaultElement.offsetHeight
+        #self._width = _defaultElement.offsetWidth
+        #self._height = _defaultElement.offsetHeight
         self._offset = [self._width // 2, self._height // 2]
 
         self.svg.setAttribute('width', self._width)
