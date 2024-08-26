@@ -179,13 +179,15 @@ def check_type(arg, *types):
 
 #test_big_star()
 
+await test_storytelling()
 
+"""
 ada = Turtle()
 ada.screen.register_shape('img/turtle.svg')
 ada.shape('img/turtle.svg')
 ada.shapesize(0.5)
 ada.forward(150)
-
+"""
 #test_colors()
 
 #import time

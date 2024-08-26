@@ -140,6 +140,7 @@ _CFG = {"width" : 0.5,               # Screen
 
 _ns = 'http://www.w3.org/2000/svg'
 _svg = document.createElementNS (_ns, 'svg')
+
 _defs = document.createElementNS (_ns, 'defs')
 _defs.setAttributeNS(None, 'id', 'defs')
 _svg.appendChild(_defs)
@@ -268,7 +269,8 @@ class Screen:
         self.svg = _svg
         self.svg_turtles = _svg_turtles
         self.svg_painting = _svg_painting
-        
+        self._bgpicname = ''
+
         self._turtles = []
         self._shapes = {}
 
@@ -390,22 +392,9 @@ class Screen:
 
         sets window to 75% of screen by 50% of screen and centers
         """
-        """
-        if not hasattr(self._root, "set_geometry"):
-            return
-        sw = self._root.win_width()
-        sh = self._root.win_height()
-        if isinstance(width, float) and 0 <= width <= 1:
-            width = sw*width
-        if startx is None:
-            startx = (sw - width) / 2
-        if isinstance(height, float) and 0 <= height <= 1:
-            height = sh*height
-        if starty is None:
-            starty = (sh - height) / 2
-        self._root.set_geometry(width, height, startx, starty)
-        """
-        
+        #self.svg.setAttribute('viewBox', f'0 0 {width} {height}')
+        _width = width
+        _height = height
         
         self.update()
 
@@ -467,6 +456,30 @@ class Screen:
 
         defs.appendChild(the_shape.svg)
         self._shapes[name] =  the_shape
+
+    def bgpic(self, picname=None):
+        """Set background image or return name of current backgroundimage.
+
+        Optional argument:
+        picname -- a string, name of a gif-file or "nopic".
+
+        If picname is a filename, set the corresponding image as background.
+        If picname is "nopic", delete backgroundimage, if present.
+        If picname is None, return the filename of the current backgroundimage.
+
+        Example (for a TurtleScreen instance named screen):
+        >>> screen.bgpic()
+        'nopic'
+        >>> screen.bgpic("landscape.gif")
+        >>> screen.bgpic()
+        'landscape.gif'
+        """
+        if picname is None:
+            return self._bgpicname
+        self._bgpicname = picname
+        _debug(f"Setting background-image {picname}")
+        self.svg.style.setProperty('background-image', f'url({picname})')
+
 
     def _window_size(self):
         """ Return the width and height of the turtle window.
@@ -552,9 +565,9 @@ class Screen:
             
 
 _defaultScreen = Screen()
+_defaultScreen.setup(400,400)
 
 
-#def _rightSize (self):
 def _rightSize(self=None):
     global _width
     global _height
@@ -1059,6 +1072,22 @@ class Turtle:
             self.undobuffer.cumulate = False
         """
 
+
+    def showturtle(self):
+        """Makes the turtle visible.
+
+        Aliases: showturtle | st
+
+        No argument.
+
+        Example (for a Turtle instance named turtle):
+        >>> turtle.hideturtle()
+        >>> turtle.showturtle()
+        """
+        self.svg.setAttribute('visibility', 'visible')
+
+        #self.pen(shown=True)
+
     def hideturtle(self):
         """Makes the turtle invisible.
 
@@ -1076,6 +1105,8 @@ class Turtle:
         self.svg.setAttribute('visibility', 'hidden')
         self._shown = False
         #self.pen(shown=False)
+
+
 
     def isvisible(self):
         """Return True if the Turtle is shown, False if it's hidden.
@@ -1138,6 +1169,7 @@ class Turtle:
     rt = right
     lt = left
     ht = hideturtle
+    st = showturtle  
     setpos = goto
     setposition = goto
     seth = setheading
@@ -1197,6 +1229,8 @@ def speed(speed):                      _defaultTurtle.speed(speed)
 def setheading(angle):                 _defaultTurtle.setheading(angle)
 def hideturtle():                      _defaultTurtle.hideturtle()
 def ht():                      _defaultTurtle.hideturtle()
+def showturtle():                      _defaultTurtle.showturtle()
+def st():                      _defaultTurtle.showturtle()
 def pencolor(*args):           _defaultTurtle.pencolor(*args)
 def fillcolor(*args):          _defaultTurtle.fillcolor(*args)
 def shapesize(self, stretch_wid=None, stretch_len=None):          _defaultTurtle.shapesize(stretch_wid, stretch_len)
@@ -1456,6 +1490,59 @@ def test_quadrato_pieno():
         forward(100)
         left(90)
     end_fill()
+
+async def test_storytelling():
+    hideturtle()  # nasconde quella di default
+
+    ada = Turtle()                                # crea una NUOVA tartaruga
+    ada.hideturtle()
+    ada.screen.bgpic("img/bg-seaside-2.gif") 
+
+    carica_immagine(ada, "img/ch-archeologist-e.gif")  # nostro comando speciale
+    ada.penup()                                   # su la penna!
+    ada.goto(-100,0)                              # spostati sul lato sinistro
+    ada.showturtle()                                
+
+    bob = Turtle()
+    bob.hideturtle()
+    carica_immagine(bob, "img/ch-arctic-big-w.gif")
+    bob.penup()
+    bob.goto(100,0)
+    bob.showturtle()
+
+    await dire(ada, "Ciao! Io sono Ada!", 3)
+    await dire(ada, "Tu come ti chiami?", 3)
+    await dire(bob,"Io sono Bob!", 2)
+    await dire(bob,"Mi sono perso!", 3)
+    await dire(ada,"Si vede!", 2)
+    await dire(ada,"Esploriamo la foresta?", 4)
+    await dire(bob,"Ok!", 2)
+    bob.goto(250, 0)
+    ada.goto(250, 0)
+
+    ada.screen.bgpic("img/bg-forest-1.gif")
+    ada.speed(0)   # velocissima
+    bob.speed(0)   # velocissimo
+    bob.goto(-200, 0)
+    ada.goto(-200, 0)
+    ada.speed(5)   # normale
+    bob.speed(5)   # normale
+    ada.goto(-100, -0)
+    bob.goto(100, -0)
+
+    await dire(ada,"Qua fa più fresco!", 3)
+    await dire(bob,"Per me è ancora troppo caldo!", 6)
+
+
+
+
+
+
+    
+  
+  
+  
+
 
 """
 screen = Screen()
