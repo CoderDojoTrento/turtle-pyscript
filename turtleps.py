@@ -658,7 +658,9 @@ class Turtle:
         )
 
         tsp = document.createElementNS(_ns, 'path')
-                
+        tsp.setAttribute('fill', 'none')           
+        tsp.setAttribute('fill-rule', 'nonzero')     
+            
         self.screen.svg_painting.appendChild(tsp)
         self._paths.append(tsp)
         self._track_svg_path = tsp
@@ -705,17 +707,20 @@ class Turtle:
     #    self._flush()
 
     def pensize(self, width):
-        #self._flush()
+        
         if width == None:
             return self._pensize
         else:
             self._pensize = width
 
     def color(self, pencolor, fillcolor = None):
-        #self._flush()
+        
         self.pencolor(pencolor)
 
-        if fillcolor is not None:
+        if fillcolor is None:
+            self.fillcolor(pencolor)
+
+        else:
             self.fillcolor(fillcolor)
 
     def _colorstr(self, color):
@@ -855,33 +860,35 @@ class Turtle:
 
     
 
+    def dot(self, radius):
+        """
+        <circle cx="50" cy="50" r="50" />
+        """
+        dot = document.createElementNS (_ns, 'circle')
+        dot.setAttribute('cx', self._position[0] + _offset[0])
+        dot.setAttribute('cy', self._position[1] + _offset[1])
+        dot.setAttribute('r', radius)
+        dot.setAttribute('fill', self._fillcolor)
+        dot.setAttribute('stroke', self._pencolor)
+        dot.setAttribute('stroke-width', self._pensize)
+
+        self.screen.svg_painting.appendChild(dot)
+        self._paths.append(dot)
+
     def circle(self, radius):
-        self.left(90)
-        opposite = self._predict(2 * (radius + 1) + 1)
-        self.right(90)
+        """
+        <circle cx="50" cy="50" r="50" />
+        """
+        circle = document.createElementNS (_ns, 'circle')
+        circle.setAttribute('cx', self._position[0] + _offset[0])
+        circle.setAttribute('cy', self._position[1] + _offset[1])
+        circle.setAttribute('r', radius)
+        circle.setAttribute('fill', 'none')
+        circle.setAttribute('stroke', self._pencolor)
+        circle.setAttribute('stroke-width', self._pensize)
+        self.screen.svg_painting.appendChild(circle)
+        self._paths.append(circle)
 
-        self._track.append('{} {} {} {} {} {} {} {}'.format(
-            'A',
-            radius,
-            radius,
-            0,
-            1,
-            0,
-            opposite[0] + _offset[0],
-            opposite[1] + _offset[1]
-        ))
-
-        self._track.append('{} {} {} {} {} {} {} {}'.format(
-            'A',
-            radius,
-            radius,
-            0,
-            1,
-            0,
-            self._position[0] + _offset[0],
-            self._position[1] + _offset[1]
-        ))
-        self._flush()
 
     def heading(self):
         """ Return the turtle's current heading.
@@ -944,7 +951,7 @@ class Turtle:
         _debug("end_fill")
         tsp = self._track_svg_path
         tsp.setAttribute('fill', self._fillcolor if self._fill and self._fillcolor != None else 'none')           
-        #tsp.setAttribute('fill-rule', 'evenodd') # don't think we need it
+        tsp.setAttribute('fill-rule', 'nonzero') 
         self._fill = False
         self._create_track()
         
@@ -1191,7 +1198,7 @@ def hideturtle():                      _defaultTurtle.hideturtle()
 def ht():                      _defaultTurtle.hideturtle()
 def pencolor(*args):           _defaultTurtle.pencolor(*args)
 def fillcolor(*args):          _defaultTurtle.fillcolor(*args)
-def bgcolor(*args):      _defaultTurtle.bgcolor(*args) 
+
 
 fd = forward
 bk = back
@@ -1265,7 +1272,7 @@ async def dire(sprite, testo, tempo, dx=0, dy=65):
         tfumetto.right(90)
     tfumetto.end_fill()
     tfumetto.penup()
-    tfumetto.color("black")
+    tfumetto.color("black", "white")
     tfumetto.forward(base / 2)
     tfumetto.right(90)
     tfumetto.forward(fontsize*1.5)
@@ -1299,11 +1306,12 @@ async def test_turtleps():
 
     #time.sleep(1)
     
-    ada.circle(40)
+    ada.dot(40)
     
     ada.forward(100)
-
     ada.color('blue')
+
+    ada.circle(20)
     ada.write("La la", align="center", font=("Times New Roman", 24, "italic"))
     ada.left(90)
     ada.forward(100)
@@ -1315,7 +1323,7 @@ async def test_fumetti():
     _info("TEST FUMETTI: BEGINNING...")
     t = Sprite()
     t.speed(10)
-    carica_immagine(t, 'ch-archeologist1.gif')
+    carica_immagine(t, 'img/ch-archeologist1.gif')
     
     await dire(t, "abcdefghilmnopqrstuvzABCDEFGHILMNOPQRSTUVZ",2)
     await dire(t, "Più in alto",2, dy = 120)
