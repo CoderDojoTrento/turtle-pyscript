@@ -23,7 +23,7 @@ def _warn(*args):
 async def test_turtleps():
     _info("TEST TURTLEPS: BEGINNING...")
     
-    ada = Turtle()
+    ada = Sprite()
 
     ada.screen.register_shape('img/turtle.svg')
     ada.shape('img/turtle.svg')
@@ -33,7 +33,7 @@ async def test_turtleps():
     print("shapesize:", ada.shapesize())
     #for i in range(3):
     ada.color('green')
-    ada.shapesize(3,15.7)
+    ada.shapesize(0.3,0.5)
     print("shapesize:", ada.shapesize())
     
     await ada.say("Ciao!", 3)
@@ -401,6 +401,19 @@ def test_load_image():
     ada = Sprite()
     ada.load_image("img/ch-archeologist-e.gif")
 
+def test_stamp():
+
+    for i in range(5):
+        goto(i*50-150,0)
+        stamp()
+    
+    ada = Sprite()
+    ada.load_image("img/ch-archeologist-e.gif")
+    ada.goto(-100,-100)
+    for i in range(5):
+        goto(i*50-150,0)
+        ada.stamp()
+
 
 async def test_layers():
     ada = Sprite()
@@ -418,4 +431,45 @@ async def test_layers():
     ada.to_background()
 
 
+"""
+#stop_button = pydom[".cdtn-stop-button"]
 
+#@pydom.when(stop_button, 'click')
+#def hi():
+#    alert("hi")
+
+def text(x, y, text: str, color):
+    ctx.font = "11px Monospace"
+    ctx.textAlign = 'left'
+    if(color == 7):
+        ctx.fillStyle = '#fff'
+
+    ctx.fillText(text, x*_scale, y*_scale)
+
+def centered_text(text: str, color):
+    if color == 7:
+        ctx.fillStyle = '#fff'
+
+    ctx.textAlign = 'center'
+    ctx.fillText(text, (canvas_width*_scale) / 2, (canvas_height*_scale) / 2)
+
+"""
+# CAN'T DO WHEN ALREADY IN AN EVENT LOOP
+"""
+asyncio.run(asyncio.gather(
+    
+    test_turtleps(),
+    test_fumetti(),
+))
+"""
+
+# this works!
+"""
+asyncio.gather(
+    
+    test_turtleps(),
+    test_fumetti(),
+)
+
+print("Fine main.py")
+"""

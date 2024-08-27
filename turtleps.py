@@ -3,6 +3,7 @@
 #
 
 from pyodide.ffi.wrappers import add_event_listener
+import uuid
 
 
 """
@@ -892,7 +893,27 @@ class Turtle:
     def back(self, length):
         self.forward(-length)
 
-    
+
+
+    def stamp(self):
+        """Stamp a copy of the turtleshape onto the canvas and return its id.
+
+        No argument.
+
+        Stamp a copy of the turtle shape onto the canvas at the current
+        turtle position. 
+        Example (for a Turtle instance named turtle):
+        >>> turtle.color("blue")
+        >>> turtle.stamp()
+        """
+        # TODO Return a stamp_id for that stamp, which can be
+        # used to delete it by calling clearstamp(stamp_id).
+
+        the_id = f"stamp-{uuid.uuid4()}"
+        cloned = self.svg.cloneNode(True)
+        cloned.setAttribute("id", the_id)
+        self.screen.svg_painting.appendChild(cloned)
+        return the_id
 
     def dot(self, radius):
         """
@@ -1315,6 +1336,8 @@ def setheading(angle):                 Turtle._screen._defaultTurtle.setheading(
 def hideturtle():                      Turtle._screen._defaultTurtle.hideturtle()
 def ht():                      Turtle._screen._defaultTurtle.hideturtle()
 def showturtle():                      Turtle._screen._defaultTurtle.showturtle()
+def stamp():                      return Turtle._screen._defaultTurtle.stamp()
+
 def st():                      Turtle._screen._defaultTurtle.showturtle()
 def pencolor(*args):           return Turtle._screen._defaultTurtle.pencolor(*args)
 def fillcolor(*args):          return Turtle._screen._defaultTurtle.fillcolor(*args)

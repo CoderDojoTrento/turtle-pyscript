@@ -18,28 +18,15 @@ from pyodide.ffi.wrappers import add_event_listener
 
 
 from turtleps import *
-#from cdtnge import *
+import asyncio
+
+
 
 ctx = None
 interval=200  # TODO
 
 _pressedKeys = {
 }
-
-def text(x, y, text: str, color):
-    ctx.font = "11px Monospace"
-    ctx.textAlign = 'left'
-    if(color == 7):
-        ctx.fillStyle = '#fff'
-
-    ctx.fillText(text, x*_scale, y*_scale)
-
-def centered_text(text: str, color):
-    if color == 7:
-        ctx.fillStyle = '#fff'
-
-    ctx.textAlign = 'center'
-    ctx.fillText(text, (canvas_width*_scale) / 2, (canvas_height*_scale) / 2)
 
 
 def _handle_input(e):
@@ -81,11 +68,7 @@ def btn(key: str):
     else:
         return False
 
-#stop_button = pydom[".cdtn-stop-button"]
 
-#@pydom.when(stop_button, 'click')
-#def hi():
-#    alert("hi")
 
 
 def init(sprite, append=True):
@@ -177,11 +160,16 @@ from tests import *
 
 #hideturtle()
 
+#await test_turtleps()
+
+
+#test_stamp()
+
 #test_big_star()
 
 #await test_storytelling()
 
-test_load_image()
+#test_load_image()
 
 #await test_layers()
 
@@ -197,44 +185,9 @@ test_load_image()
 
 #await test_fumetti_piu()
 
-
 #test_text()
 #test_colors()
 
 
-"""
-ada = Turtle()
-ada.screen.register_shape('img/turtle.svg')
-ada.shape('img/turtle.svg')
-ada.shapesize(0.5)
-ada.forward(150)
-"""
 
-#import time
-import asyncio
-
-# one after the other
-
-#await test_turtleps()
-#await test_fumetti()
-
-
-# CAN'T DO WHEN ALREADY IN AN EVENT LOOP
-"""
-asyncio.run(asyncio.gather(
-    
-    test_turtleps(),
-    test_fumetti(),
-))
-"""
-
-# this works!
-"""
-asyncio.gather(
-    
-    test_turtleps(),
-    test_fumetti(),
-)
-"""
-print("Fine main.py")
 
