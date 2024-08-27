@@ -473,3 +473,13 @@ asyncio.gather(
 
 print("Fine main.py")
 """
+
+"""
+def check_type(arg, *types):
+    for t in types:
+        if type(arg) == t:
+            return
+    raise CDTNException(f"Tipo di dato sbagliato per il valore {arg    }!\n Atteso: {types} Ottenuto: {type(arg)}")
+
+
+"""

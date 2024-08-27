@@ -93,8 +93,8 @@ from js import (
 
 import math
 
-#_debugging = False
-_debugging = True
+_debugging = False
+#_debugging = True
 #_tracing = True
 _tracing = False
 
@@ -1492,3 +1492,88 @@ if hasattr(screen, "colormode"):
     screen.colormode(255)  # this is Trinket default, see https://github.com/CoderDojoTrento/turtle-storytelling/issues/2
 """
 
+
+# VERY DRAFTY EVENT LOOP STUFF
+
+import random
+#import pyscript.web.dom
+from pyscript import when, display
+from pyscript.web import page, img
+
+from js import DOMParser
+from js import (
+    document,
+    Element,
+)
+
+from pyscript import window, document
+
+from pyodide.http import open_url
+from pyodide.ffi.wrappers import set_timeout
+from pyodide.ffi.wrappers import add_event_listener
+import asyncio
+
+
+
+ctx = None
+interval=20  # TODO  millisecs
+
+_pressedKeys = {
+}
+
+
+def _handle_input(e):
+    """ {
+     "key": "a",
+     "keyCode": 65,
+     "which": 65,
+     "code": "KeyA",
+     "location": 0,
+     "altKey": false,
+     "ctrlKey": false,
+     "metaKey": false,
+     "shiftKey": false,
+     "repeat": false
+    }
+
+    {
+     "key": "ArrowLeft",
+     "keyCode": 37,
+     "which": 37,
+     "code": "ArrowLeft",
+     "location": 0,
+     "altKey": false,
+     "ctrlKey": false,
+     "metaKey": false,
+     "shiftKey": false,
+     "repeat": false
+    }
+    """
+    global _pressedKeys
+    if e.type == "keydown":
+        _pressedKeys[e.key] = True
+    elif e.type == "keyup":
+        _pressedKeys[e.key] = False
+
+def pressed(key: str):
+    if key in _pressedKeys:
+        return _pressedKeys[key]
+    else:
+        return False
+
+
+def init_engine():
+    
+     #init input
+    add_event_listener(
+        document,
+        "keydown",
+        _handle_input
+    )
+
+    add_event_listener(
+        document,
+        "keyup",
+        _handle_input
+    )
+    

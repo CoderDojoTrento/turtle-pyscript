@@ -1,5 +1,8 @@
 body {
     margin: 0;
+    position: fixed; 
+    overflow-x: hidden;
+    width: 100%;
 }
 
 .pyscript {
@@ -24,6 +27,7 @@ html {
         "Noto Color Emoji";
     line-height: 1.5;
 }
+
 
 nav {
     position: sticky;
