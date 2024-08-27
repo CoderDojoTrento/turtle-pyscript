@@ -181,11 +181,15 @@ from tests import *
 
 #await test_storytelling()
 
+test_load_image()
+
+#await test_layers()
+
 #await test_shapesize_one()
 
 #await test_shapesize_many()
 
-await test_tilt()
+#await test_tilt()
 
 #await test_quadrato_pieno()
 

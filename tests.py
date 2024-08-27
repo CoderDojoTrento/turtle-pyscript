@@ -36,7 +36,7 @@ async def test_turtleps():
     ada.shapesize(3,15.7)
     print("shapesize:", ada.shapesize())
     
-    await dire(ada, "Ciao!", 3)
+    await ada.say("Ciao!", 3)
 
 
     ada.write("Ciao mondo!", align="right", font=("Courier", 18, "bold"))
@@ -191,13 +191,13 @@ async def test_fumetti_piu():
     _info("TEST FUMETTI: BEGINNING...")
     t = Sprite()
     t.speed(10)
-    carica_immagine(t, 'img/ch-archeologist-e.gif')
+    t.load_image('img/ch-archeologist-e.gif')
     
-    await dire(t, "abcdefghilmnopqrstuvzABCDEFGHILMNOPQRSTUVZ",2)
-    await dire(t, "Più in alto",2, dy = 120)
-    await dire(t, "Più in basso",2, dy = -120)
-    await dire(t, "Più a destra",2, dx = 120)
-    await dire(t, "Più a sinistra",2, dx = -120)
+    await t.say("abcdefghilmnopqrstuvzABCDEFGHILMNOPQRSTUVZ",2)
+    await t.say("Più in alto",2, dy = 120)
+    await t.say("Più in basso",2, dy = -120)
+    await t.say("Più a destra",2, dx = 120)
+    await t.say("Più a sinistra",2, dx = -120)
     
     _info("TEST FUMETTI: DONE...")
 
@@ -206,25 +206,25 @@ async def test_fumetti_ciao():
     _info("TEST FUMETTI CIAO: BEGINNING...")
     t = Sprite()
     t.speed(10)
-    carica_immagine(t, 'img/ch-archeologist-e.gif')
+    t.load_image('img/ch-archeologist-e.gif')
     
-    await dire(t, "Ciao1", 1)
+    await t.say("Ciao1", 1)
     t.goto(-250, 0)
-    await dire(t, "Ciao2", 1)
+    await t.say("Ciao2", 1)
     t.goto(250, 0)
-    await dire(t, "Ciao3", 1)
+    await t.say("Ciao3", 1)
     t.goto(0, 250)
-    await dire(t, "Ciao4", 1)
+    await t.say("Ciao4", 1)
     t.goto(0, -250)
-    await dire(t, "Ciao5", 1)
+    await t.say("Ciao5", 1)
     t.goto(250, -250)
-    await dire(t, "Ciao6", 1)
+    await t.say("Ciao6", 1)
     t.goto(-250, 250)
-    await dire(t, "Ciao7", 1)
+    await t.say("Ciao7", 1)
     t.goto(-250, -250)
-    await dire(t, "Ciao8", 1)
+    await t.say("Ciao8", 1)
     t.goto(250, 250)
-    await dire(t, "Ciao9", 1)
+    await t.say("Ciao9", 1)
     
     _info("TEST FUMETTI CIAO: DONE...")
 
@@ -355,29 +355,29 @@ async def test_quadrato_pieno():
 async def test_storytelling():
     hideturtle()  # nasconde quella di default
 
-    ada = Turtle()                                # crea una NUOVA tartaruga
+    ada = Sprite()                                # crea una NUOVA tartaruga
     ada.hideturtle()
     ada.screen.bgpic("img/bg-seaside-2.gif") 
 
-    carica_immagine(ada, "img/ch-archeologist-e.gif")  # nostro comando speciale
+    ada.load_image("img/ch-archeologist-e.gif")  # nostro comando speciale
     ada.penup()                                   # su la penna!
     ada.goto(-100,0)                              # spostati sul lato sinistro
     ada.showturtle()                                
 
-    bob = Turtle()
+    bob = Sprite()
     bob.hideturtle()
-    carica_immagine(bob, "img/ch-arctic-big-w.gif")
+    bob.load_image("img/ch-arctic-big-w.gif")
     bob.penup()
     bob.goto(100,0)
     bob.showturtle()
 
-    await dire(ada, "Ciao! Io sono Ada!", 3)
-    await dire(ada, "Tu come ti chiami?", 3)
-    await dire(bob,"Io sono Bob!", 2)
-    await dire(bob,"Mi sono perso!", 3)
-    await dire(ada,"Si vede!", 2)
-    await dire(ada,"Esploriamo la foresta?", 4)
-    await dire(bob,"Ok!", 2)
+    await ada.say("Ciao! Io sono Ada!", 3)
+    await ada.say("Tu come ti chiami?", 3)
+    await bob.say("Io sono Bob!", 2)
+    await bob.say("Mi sono perso!", 3)
+    await ada.say("Si vede!", 2)
+    await ada.say("Esploriamo la foresta?", 4)
+    await bob.say("Ok!", 2)
     bob.goto(250, 0)
     ada.goto(250, 0)
 
@@ -391,9 +391,31 @@ async def test_storytelling():
     ada.goto(-100, -0)
     bob.goto(100, -0)
 
-    await dire(ada,"Qua fa più fresco!", 3)
-    await dire(bob,"Per me è ancora troppo caldo!", 6)
+    await ada.say("Qua fa più fresco!", 3)
+    await bob.say("Per me è ancora troppo caldo!", 6)
 
+
+def test_load_image():
+    ada = Sprite()
+    ada.load_image("img/ch-archeologist-e.gif")
+    ada = Sprite()
+    ada.load_image("img/ch-archeologist-e.gif")
+
+
+async def test_layers():
+    ada = Sprite()
+    ada.load_image("img/ch-archeologist-e.gif")
+
+    bob = Sprite()
+    bob.load_image("img/ch-arctic-big-w.gif")
+
+    await asyncio.sleep(1)
+    
+    ada.to_foreground()
+
+    await asyncio.sleep(1)
+
+    ada.to_background()
 
 
 

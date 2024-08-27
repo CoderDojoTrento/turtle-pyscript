@@ -464,10 +464,11 @@ class _Screen:
         >>> screen.register_shape("triangle", ((5,-3),(0,5),(-5,-3)))
 
         """
-        # TODO check double registration   
 
         _debug(f"CDTN: Registering shape: name: {name}   shape:{shape}")
         
+        if name in self._shapes:
+            _warn(f"Screen.register_shape(): trying to register the same shape twice: {name}   ")
 
         defs = self.svg.getElementById("defs")
         
@@ -1378,66 +1379,79 @@ class CDTNException(Exception):
 """ Some renaming, turtle everywhere can get confusing
 """
 class Sprite(Turtle):
-    pass
+
+    def load_image(self, image):
+        self.screen.register_shape(image)
+        self.shape(image)
+
+    def to_foreground(self):
+
+        self.screen.svg_sprites.removeChild(self.svg)
+        self.screen.svg_sprites.appendChild(self.svg)
+
+    def to_background(self):
+        ss = self.screen.svg_sprites
+        ss.removeChild(self.svg)
+
+        if len(self.screen._turtles) > 0:
+            ss.insertBefore(self.svg, ss.children[0])
+        else: 
+            ss.appendChild(self.svg)
 
 
-def carica_immagine(sprite, immagine):
-    sprite.screen.register_shape(immagine)
-    sprite.shape(immagine)
-
-async def dire(sprite, testo, tempo, dx=0, dy=65):
-    #if dy == None:
-        #_debug(f"sprite.svg")
-        #_debug(f"{sprite.svg.getBBox()=}")
+    async def say(self, text, seconds, dx=0, dy=65):
+        #if dy == None:
+            #_debug(f"sprite.svg")
+            #_debug(f"{sprite.svg.getBBox()=}")
+            
+            #dy = sprite.svg.getBBox().height()  # gives weird TypeError int 
+            #_debug(f"{dy=}")
         
-        #dy = sprite.svg.getBBox().height()  # gives weird TypeError int 
-        #_debug(f"{dy=}")
-    
-    tfumetto = Turtle()
-    sprite.screen.tracer(0)
-    tfumetto.speed(0)
-    tfumetto.hideturtle()
-    tfumetto.forward(0) # should bring it to front but in trinket it doesnt :-/
-    fontsize = 15
-    carw = 0.5 * fontsize
-    base = (len(testo)+2)*carw
-    alt = 28
-    tfumetto.penup()
-    x = sprite.xcor() + dx - base//3
-    y = sprite.ycor() + dy
-    if x + base > 200:
-        x = 200 - base
-    if y + alt > 200:
-        y = 200
-    if x < -200:
-        x = -200
-    if y < -200 + alt:
-        y = -200 + alt
-    tfumetto.goto(x, y)
-    tfumetto.pendown()
-    tfumetto.pencolor("black")
-    tfumetto.fillcolor("white")
-    
-    tfumetto.setheading(0)
-    tfumetto.begin_fill()
-    for i in range(2):
-        tfumetto.forward(base)
+        tfumetto = Turtle()
+        #self.screen.tracer(0) # TODO
+        tfumetto.speed(0)
+        tfumetto.hideturtle()
+        tfumetto.forward(0) # should bring it to front but in trinket it doesnt :-/
+        fontsize = 15
+        carw = 0.5 * fontsize
+        base = (len(text)+2)*carw
+        alt = 28
+        tfumetto.penup()
+        x = self.xcor() + dx - base//3
+        y = self.ycor() + dy
+        if x + base > 200:
+            x = 200 - base
+        if y + alt > 200:
+            y = 200
+        if x < -200:
+            x = -200
+        if y < -200 + alt:
+            y = -200 + alt
+        tfumetto.goto(x, y)
+        tfumetto.pendown()
+        tfumetto.pencolor("black")
+        tfumetto.fillcolor("white")
+        
+        tfumetto.setheading(0)
+        tfumetto.begin_fill()
+        for i in range(2):
+            tfumetto.forward(base)
+            tfumetto.right(90)
+            tfumetto.forward(alt)
+            tfumetto.right(90)
+        tfumetto.end_fill()
+        tfumetto.penup()
+        tfumetto.color("black", "white")
+        tfumetto.forward(base / 2)
         tfumetto.right(90)
-        tfumetto.forward(alt)
-        tfumetto.right(90)
-    tfumetto.end_fill()
-    tfumetto.penup()
-    tfumetto.color("black", "white")
-    tfumetto.forward(base / 2)
-    tfumetto.right(90)
-    tfumetto.forward(fontsize*1.2)
-    tfumetto.write(testo,
-                   align="center",
-                   font=('Arial', fontsize, 'normal'))
-    
-    sprite.screen.tracer(1)
-    await asyncio.sleep(tempo)
-    tfumetto.clear()
+        tfumetto.forward(fontsize*1.2)
+        tfumetto.write(text,
+                    align="center",
+                    font=('Arial', fontsize, 'normal'))
+        
+        #self.screen.tracer(1)  # TODO
+        await asyncio.sleep(seconds)
+        tfumetto.clear()
 
 
 
