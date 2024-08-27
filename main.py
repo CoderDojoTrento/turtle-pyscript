@@ -181,6 +181,8 @@ from tests import *
 
 await test_storytelling()
 
+#await test_shapesize_one()
+
 #await test_quadrato_pieno()
 
 #await test_fumetti_ciao()
@@ -226,5 +228,5 @@ asyncio.gather(
     test_fumetti(),
 )
 """
-print("Io vengo eseguito IMME DOPO!")
+print("Fine main.py")
 

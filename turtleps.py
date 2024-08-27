@@ -150,14 +150,14 @@ _defs.setAttributeNS(None, 'id', 'defs')
 _svg.appendChild(_defs)
 
 # so we can at least define z-order of turtles
-_svg_turtles = document.createElementNS (_ns, 'g')
-_svg_turtles.setAttribute('class', 'turtles')
+_svg_sprites = document.createElementNS (_ns, 'g')
+_svg_sprites.setAttribute('class', 'sprites')
 _svg_painting = document.createElementNS (_ns, 'g')
 _svg_painting.setAttribute('class', 'painting')
 
 
 _svg.appendChild(_svg_painting)
-_svg.appendChild(_svg_turtles)
+_svg.appendChild(_svg_sprites)
 
 
 
@@ -210,8 +210,8 @@ class Shape(object):
                 raise ValueError("CDTN: Missing image data!")
 
             img = document.createElementNS(_ns, 'image')
-            img.setAttributeNS(None, 'x', 0)
-            img.setAttributeNS(None, 'y', 0)
+            #img.setAttributeNS(None, 'x', 0)
+            #img.setAttributeNS(None, 'y', 0)
             #img.setAttributeNS(None, 'width', 20)
             #img.setAttributeNS(None, 'height', 20)
             #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
@@ -225,12 +225,30 @@ class Shape(object):
                 #   data = TurtleScreen._image(data)
             
                 # else data assumed to be PhotoImage  # CDTN ??
+
         elif type_ == "compound":
             #data = []  CDTN
             self.svg = document.createElementNS(_ns, 'g')   # group
         else:
             raise TurtleGraphicsError("There is no shape type %s" % type_)
         
+    def get_svg_image_size(self):
+        """
+        """
+        if self._type != "image":
+            raise CDTNException("Other types are currently not supported")
+        _debug(f"{window.getComputedStyle(self.svg).getPropertyValue('width')=}")   # '50px'
+        _debug(f"{window.getComputedStyle(self.svg).getPropertyValue('height')=}")  # '50px'
+        cs = window.getComputedStyle(self.svg)
+        return(int(cs.getPropertyValue('width')[:-2]), int(cs.getPropertyValue('height')[:-2]))
+
+        #_debug(f"{self.svg.getBBox()=}")
+        #_debug(f"{self.svg.getBBox()["width"]=}")  # wtf  TypeError: 'pyodide.ffi.JsProxy' object is not subscriptable
+        #_debug(f"{self.svg.getBBox()[2]=}")                     # no
+        #_debug(f'{self.svg.getBBox().getProperty("width")=}')   # no
+        #_debug(f'{self.svg.getBBox().getAttribute("width")=}')  # no
+        
+
 
     def addcomponent(self, poly, fill, outline=None):
         """Add component to a shape of type compound.
@@ -265,12 +283,20 @@ class Shape(object):
         
         self._data.appendChild(poly)
 
+def Screen():
+    """Return the singleton screen object.
+    If none exists at the moment, create a new one and return it,
+    else return the existing one."""
+    if Turtle._screen is None:
+        _debug("No default screen found, creating one..")
+        Turtle._screen = _Screen()
+    return Turtle._screen
 
-class Screen:
+class _Screen:
     def __init__(self):
         _debug("CDTN: Initializing screen...")
         self.svg = _svg
-        self.svg_turtles = _svg_turtles
+        self.svg_sprites = _svg_sprites
         self.svg_painting = _svg_painting
         self._bgpicname = ''
         self._timer = None
@@ -373,7 +399,7 @@ class Screen:
         #self._turtles = []
         
         self.bgcolor("white")
-        self.svg_turtles.replaceChildren()
+        self.svg_sprites.replaceChildren()
         self.svg_painting.replaceChildren()
         
         #for btn in 1, 2, 3:
@@ -459,7 +485,7 @@ class Screen:
 
         defs.appendChild(the_shape.svg)
         self._shapes[name] =  the_shape
-
+        
     def bgpic(self, picname=None):
         """Set background image or return name of current backgroundimage.
 
@@ -588,20 +614,25 @@ class Screen:
 
 class Turtle:
 
+    _screen = None
+
     def __init__(self, 
                  screen=None,
                  shape=_CFG["shape"],  # NOTE: this is meant to be an id
                  visible=_CFG["visible"]):
         
+        _debug("A new Turtle is born!")
+
         if not screen:
-            screen = _defaultScreen
+            screen = Turtle._screen
+
         self.screen = screen
         self.screen._turtles.append(self)
 
 
         self._position = [0,0] 
         self._stretchfactor = (1., 1.)
-        self._paths = []
+        self._paths = []   # TODO rename, it hosts anything drawn by the turtle
         self._track = []
         
         self._pencolor = _CFG["pencolor"]
@@ -618,7 +649,7 @@ class Turtle:
         #self.screen.svg.appendChild(cloned_shape_node)
 
         use_node = document.createElementNS (_ns, 'use')
-        use_node.setAttribute('id', f"turtle-{id(self)}")
+        use_node.setAttribute('id', f"sprite-{id(self)}")
 
         """
         <use href="#tree" x="50" y="100" />  
@@ -626,8 +657,8 @@ class Turtle:
         
         self.svg = use_node
 
-        self.screen.svg_turtles.appendChild(use_node)
-        _debug("turtle was appended to screen.svg_turtles")
+        self.screen.svg_sprites.appendChild(use_node)
+        _debug("turtle was appended to screen.svg_sprites")
 
         self.shape(shape)
 
@@ -684,8 +715,7 @@ class Turtle:
         _debug("Clearing turtle...")
         for path in self._paths:
             self.screen.svg_painting.removeChild(path)
-        self._paths = []  # TODO rename, it hosts anything drawn by the turtle
-
+        self._paths = []  
         self._create_track()
         self._moveto(self._position)
 
@@ -910,8 +940,29 @@ class Turtle:
         return math.degrees(self._heading)
     
     def _update_transform(self):
+        """ This *seems* to work
+        <g transform="translate(200,200)">
+            <use id="sprite-11056328"
+             href="#img/ch-archeologist-e.gif" 
+             transform="rotate(90.0) scale(4.0,4.0)" 
+             transform-origin="20 30"></use>
+        </g>
+        """
+
+
         self.svg.setAttribute('transform', self._svg_transform())
-        #self.svg.setAttribute('transform-origin','center center');
+        
+        shape = self.screen._shapes[self._shape]
+        if shape._type == "image":
+            size = shape.get_svg_image_size()
+            
+            # I admit I'm confused about this transform-origin stuff
+            # TODO link issue
+            # NOTE: inverting coords because... it seems it works
+            self.svg.setAttribute('transform-origin',f'{size[1]} {size[0]}'); 
+        else:
+            #TODO manage polygon and compound cases
+            pass
 
     def setheading(self, to_angle):
         """Set the orientation of the turtle to to_angle.
@@ -1132,6 +1183,7 @@ class Turtle:
         """
         if name is None:
             return self._shape
+        _debug(f"Setting turtle shape to {name}")
         if not name in self.screen.getshapes():
             raise TurtleGraphicsError("There is no registered shape named %s" % name)
         self._shape = name
@@ -1149,7 +1201,7 @@ class Turtle:
             self.svg.setAttribute('stroke-width', 1)
             self.svg.setAttribute('fill-rule', 'evenodd')
 
-        self.svg.setAttribute('transform', self._svg_transform())
+        self._update_transform()
 
         #self._update()
 
@@ -1170,41 +1222,42 @@ class Turtle:
 
 
 
-def pensize(width):                    _defaultScreen._defaultTurtle.pensize(width)
-def color(pencolor, fillcolor = None): _defaultScreen._defaultTurtle.color(pencolor, fillcolor)
-def home():                            _defaultScreen._defaultTurtle.home()
-def goto(x, y = None):                 _defaultScreen._defaultTurtle.goto(x, y)
-def position(): return _defaultScreen._defaultTurtle.position()
-def pos(): return _defaultScreen._defaultTurtle.pos()
-def xcor(): return _defaultScreen._defaultTurtle.xcor()
-def ycor(): return _defaultScreen._defaultTurtle.ycor()
+def pensize(width):                    Turtle._screen._defaultTurtle.pensize(width)
+def color(pencolor, fillcolor = None): Turtle._screen._defaultTurtle.color(pencolor, fillcolor)
+def home():                            Turtle._screen._defaultTurtle.home()
+def goto(x, y = None):                 Turtle._screen._defaultTurtle.goto(x, y)
+def position(): return Turtle._screen._defaultTurtle.position()
+def pos(): return Turtle._screen._defaultTurtle.pos()
+def xcor(): return Turtle._screen._defaultTurtle.xcor()
+def ycor(): return Turtle._screen._defaultTurtle.ycor()
 
 
-def distance(x, y = None): return _defaultScreen._defaultTurtle.distance(x, y)
-def penup():                              _defaultScreen._defaultTurtle.penup()
-def pendown():                            _defaultScreen._defaultTurtle.pendown()
+def distance(x, y = None): return Turtle._screen._defaultTurtle.distance(x, y)
+def penup():                              Turtle._screen._defaultTurtle.penup()
+def pendown():                            Turtle._screen._defaultTurtle.pendown()
 
-def up():                              _defaultScreen._defaultTurtle.penup()
-def down():                            _defaultScreen._defaultTurtle.pendown()
-def forward(length):                   _defaultScreen._defaultTurtle.forward(length)
-def back(length):                      _defaultScreen._defaultTurtle.back(length)
-def circle(radius):                    _defaultScreen._defaultTurtle.circle(radius)
-def left(angle):                       _defaultScreen._defaultTurtle.left(angle)
-def right(angle):                      _defaultScreen._defaultTurtle.right(angle)
-def begin_fill():                      _defaultScreen._defaultTurtle.begin_fill()
-def end_fill():                        _defaultScreen._defaultTurtle.end_fill()
-def speed(speed):                      _defaultScreen._defaultTurtle.speed(speed)
-def setheading(angle):                 _defaultScreen._defaultTurtle.setheading(angle)
-def hideturtle():                      _defaultScreen._defaultTurtle.hideturtle()
-def ht():                      _defaultScreen._defaultTurtle.hideturtle()
-def showturtle():                      _defaultScreen._defaultTurtle.showturtle()
-def st():                      _defaultScreen._defaultTurtle.showturtle()
-def pencolor(*args):           _defaultScreen._defaultTurtle.pencolor(*args)
-def fillcolor(*args):          _defaultScreen._defaultTurtle.fillcolor(*args)
-def shapesize(stretch_wid=None, stretch_len=None):          _defaultScreen._defaultTurtle.shapesize(stretch_wid, stretch_len)
-def dot(radius):     _defaultScreen._defaultTurtle.dot(radius)
-def circle(radius):     _defaultScreen._defaultTurtle.circle(radius)
-def write(arg, align="left", font=("Arial", 8, "normal")): _defaultScreen._defaultTurtle.write(arg, align=align, font=font)
+def up():                              Turtle._screen._defaultTurtle.penup()
+def down():                            Turtle._screen._defaultTurtle.pendown()
+def forward(length):                   Turtle._screen._defaultTurtle.forward(length)
+def back(length):                      Turtle._screen._defaultTurtle.back(length)
+def circle(radius):                    Turtle._screen._defaultTurtle.circle(radius)
+def left(angle):                       Turtle._screen._defaultTurtle.left(angle)
+def right(angle):                      Turtle._screen._defaultTurtle.right(angle)
+def begin_fill():                      Turtle._screen._defaultTurtle.begin_fill()
+def end_fill():                        Turtle._screen._defaultTurtle.end_fill()
+def speed(speed):                      Turtle._screen._defaultTurtle.speed(speed)
+def setheading(angle):                 Turtle._screen._defaultTurtle.setheading(angle)
+def hideturtle():                      Turtle._screen._defaultTurtle.hideturtle()
+def ht():                      Turtle._screen._defaultTurtle.hideturtle()
+def showturtle():                      Turtle._screen._defaultTurtle.showturtle()
+def st():                      Turtle._screen._defaultTurtle.showturtle()
+def pencolor(*args):           Turtle._screen._defaultTurtle.pencolor(*args)
+def fillcolor(*args):          Turtle._screen._defaultTurtle.fillcolor(*args)
+def shapesize(stretch_wid=None, stretch_len=None):          Turtle._screen._defaultTurtle.shapesize(stretch_wid, stretch_len)
+def shape(name=None): Turtle._screen._defaultTurtle.shape(name)
+def dot(radius):     Turtle._screen._defaultTurtle.dot(radius)
+def circle(radius):     Turtle._screen._defaultTurtle.circle(radius)
+def write(arg, align="left", font=("Arial", 8, "normal")): Turtle._screen._defaultTurtle.write(arg, align=align, font=font)
 
 
 fd = forward
@@ -1218,12 +1271,11 @@ seth = setheading
 turtlesize = shapesize
 
 
-_defaultScreen = Screen()
-_defaultScreen.setup(400,400)
-
+Turtle._screen = Screen()
+Turtle._screen.setup(400,400)
 
 def bgcolor(*args):
-    _defaultScreen.bgcolor(*args)
+    Turtle._screen.bgcolor(*args)
 
 bgcolor('white')
 
