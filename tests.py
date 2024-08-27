@@ -70,7 +70,7 @@ async def test_shapesize_one():
     shape(arc)
     color('green')
     dot(5)
-    shapesize(2.0)
+    shapesize(3.0)
     
 
 async def test_shapesize_many():
@@ -80,6 +80,8 @@ async def test_shapesize_many():
     screen.register_shape(arc)
     screen.register_shape(tsvg)
     
+    # TODO make proper wait https://github.com/CoderDojoTrento/turtle-pyscript/issues/8
+    await asyncio.sleep(0.3)
 
     a = Turtle(shape=arc)
     a.up()
@@ -121,7 +123,7 @@ async def test_shapesize_many():
     p.down()
     p.color('lime')
     p.dot(5)
-    p.goto(-100,200)
+    p.goto(-100,150)
     #p.shapesize(1.0,1.0)
 
     q = Turtle(shape=tsvg)
@@ -134,19 +136,19 @@ async def test_shapesize_many():
 
     r = Turtle(shape=tsvg)
     r.up()
-    r.goto(-100,-200)
+    r.goto(-100,-150)
     r.down()
     r.color('purple')
     r.dot(5)
-    r.shapesize(-1.0,1.0)
+    r.shapesize(1.0,-1.0)
 
     w = Turtle(shape=tsvg)
     w.up()
-    w.goto(100,-200)
+    w.goto(100,-150)
     w.down()
     w.color('orange')
     w.dot(5)
-    w.shapesize(1.0,-1.0)
+    w.shapesize(-1.0,-1.0)
 
 
 

@@ -183,6 +183,9 @@ await test_storytelling()
 
 #await test_shapesize_one()
 
+#await test_shapesize_many()
+
+
 #await test_quadrato_pieno()
 
 #await test_fumetti_ciao()

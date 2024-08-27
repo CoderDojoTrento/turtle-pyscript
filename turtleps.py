@@ -2,6 +2,8 @@
 # ************    _NON_ SCRIVERE IN QUESTO FILE !!    ********************
 #
 
+from pyodide.ffi.wrappers import add_event_listener
+
 
 """
 Aug 2024:
@@ -237,16 +239,16 @@ class Shape(object):
         """
         if self._type != "image":
             raise CDTNException("Other types are currently not supported")
-        _debug(f"{window.getComputedStyle(self.svg).getPropertyValue('width')=}")   # '50px'
-        _debug(f"{window.getComputedStyle(self.svg).getPropertyValue('height')=}")  # '50px'
+        _debug(f"{window.getComputedStyle(self.svg).getPropertyValue('width')=}")   # '50.3px'
+        _debug(f"{window.getComputedStyle(self.svg).getPropertyValue('height')=}")  # '50.5px'
         cs = window.getComputedStyle(self.svg)
-        return(int(cs.getPropertyValue('width')[:-2]), int(cs.getPropertyValue('height')[:-2]))
+        return(float(cs.getPropertyValue('width')[:-2]), float(cs.getPropertyValue('height')[:-2]))
 
-        #_debug(f"{self.svg.getBBox()=}")
-        #_debug(f"{self.svg.getBBox()["width"]=}")  # wtf  TypeError: 'pyodide.ffi.JsProxy' object is not subscriptable
-        #_debug(f"{self.svg.getBBox()[2]=}")                     # no
-        #_debug(f'{self.svg.getBBox().getProperty("width")=}')   # no
-        #_debug(f'{self.svg.getBBox().getAttribute("width")=}')  # no
+        #_debug(f"{self.svg_shape.getBBox()=}")
+        #_debug(f"{self.svg_shape.getBBox()["width"]=}")  # wtf  TypeError: 'pyodide.ffi.JsProxy' object is not subscriptable
+        #_debug(f"{self.svg_shape.getBBox()[2]=}")                     # no
+        #_debug(f'{self.svg_shape.getBBox().getProperty("width")=}')   # no
+        #_debug(f'{self.svg_shape.getBBox().getAttribute("width")=}')  # no
         
 
 
@@ -352,7 +354,6 @@ class _Screen:
         #    rootwindow.call('wm', 'attributes', '.', '-topmost', '0')
 
         def _right_size(myself=None):
-
             self.update()
             self.setup()
 
@@ -360,9 +361,10 @@ class _Screen:
         window.onresize = _right_size
         _right_size()
 
+
         self._defaultTurtle = Turtle(screen=self)
 
-
+    
     def getshapes(self):
         """Return a list of names of all currently available turtle shapes.
 
@@ -648,16 +650,20 @@ class Turtle:
         #cloned_shape_node = shape_node.cloneNode(True)
         #self.screen.svg.appendChild(cloned_shape_node)
 
+        group_node = document.createElementNS (_ns, 'g')
         use_node = document.createElementNS (_ns, 'use')
-        use_node.setAttribute('id', f"sprite-{id(self)}")
+        
+        group_node.setAttribute('id', f"sprite-{id(self)}")
 
         """
         <use href="#tree" x="50" y="100" />  
         """
         
-        self.svg = use_node
+        self.svg = group_node
+        self.svg_shape = use_node
 
-        self.screen.svg_sprites.appendChild(use_node)
+        group_node.appendChild(use_node)
+        self.screen.svg_sprites.appendChild(group_node)
         _debug("turtle was appended to screen.svg_sprites")
 
         self.shape(shape)
@@ -665,20 +671,7 @@ class Turtle:
         self.reset()
         _trace(f"{self._heading=}")
 
-    def _svg_transform(self):
 
-        shape_el = document.getElementById(self._shape)
-        tilt_fix = 0
-        if shape_el.tagName == 'polygon':
-            tilt_fix = -90   # polygons are designed pointing top, images look natural pointing right :-/
-            _trace(f"{tilt_fix=}")
-
-        rot = math.degrees(-self._heading) + tilt_fix
-        _trace(f"{rot=}")
-        scale = f"{self._stretchfactor[0]},{self._stretchfactor[1]}"
-        translate = f"{self._position[0] + self.screen._offset[0]},{self.screen._offset[1] - self._position[1]}"
-
-        return f"translate({translate}) rotate({rot}) scale({scale})"
     
 
     def _create_track(self):
@@ -948,18 +941,29 @@ class Turtle:
              transform-origin="20 30"></use>
         </g>
         """
-
-
-        self.svg.setAttribute('transform', self._svg_transform())
-        
         shape = self.screen._shapes[self._shape]
+        
+        tilt_fix = 0
+        if shape._type == 'polygon':
+            tilt_fix = -90   # polygons are designed pointing top, images look natural pointing right :-/
+            _trace(f"{tilt_fix=}")
+
+        rot = math.degrees(-self._heading) + tilt_fix
+        _trace(f"{rot=}")
+        scale = f"{self._stretchfactor[0]},{self._stretchfactor[1]}"
+        translate = f"{self._position[0] + self.screen._offset[0]},{self.screen._offset[1] - self._position[1]}"
+
+        self.svg.setAttribute('transform',f"translate({translate})")
+        self.svg_shape.setAttribute('transform', 
+                                    f"rotate({rot}) scale({scale})")
+        
+        
         if shape._type == "image":
             size = shape.get_svg_image_size()
-            
-            # I admit I'm confused about this transform-origin stuff
-            # TODO link issue
-            # NOTE: inverting coords because... it seems it works
-            self.svg.setAttribute('transform-origin',f'{size[1]} {size[0]}'); 
+            self.svg_shape.setAttribute('transform', 
+                                        f"translate(-{size[0] // 2}, -{size[1] // 2}) rotate({rot}) scale({scale})")
+        
+            self.svg_shape.setAttribute('transform-origin',f'{size[0] // 2} {size[1] // 2}'); 
         else:
             #TODO manage polygon and compound cases
             pass
@@ -1189,17 +1193,17 @@ class Turtle:
         self._shape = name
         shape_svg_id = f'#{name}'
 
-        self.svg.setAttribute('href', shape_svg_id)
+        self.svg_shape.setAttribute('href', shape_svg_id)
         #use_node.setAttribute('x', 0 + self.screen._offset[0])  # setting this prevents polygon rotation from working
         #use_node.setAttribute('y', 0 + self.screen._offset[1])
         
         shape_el = document.getElementById(name)
 
         if shape_el.tagName == 'polygon':
-            self.svg.setAttribute('fill', _CFG["fillcolor"])
-            self.svg.setAttribute('stroke', _CFG["pencolor"])
-            self.svg.setAttribute('stroke-width', 1)
-            self.svg.setAttribute('fill-rule', 'evenodd')
+            self.svg_shape.setAttribute('fill', _CFG["fillcolor"])
+            self.svg_shape.setAttribute('stroke', _CFG["pencolor"])
+            self.svg_shape.setAttribute('stroke-width', 1)
+            self.svg_shape.setAttribute('fill-rule', 'evenodd')
 
         self._update_transform()
 
