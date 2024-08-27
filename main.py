@@ -179,12 +179,13 @@ from tests import *
 
 #test_big_star()
 
-await test_storytelling()
+#await test_storytelling()
 
 #await test_shapesize_one()
 
 #await test_shapesize_many()
 
+await test_tilt()
 
 #await test_quadrato_pieno()
 

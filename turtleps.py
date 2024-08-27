@@ -643,7 +643,9 @@ class Turtle:
 
         self._shown = True
         self._fill = False
-        self._heading = 0
+        self._heading = 0.0
+        self._tilt = 0
+        
         
 
         #shape_node = document.getElementById(shape)
@@ -693,7 +695,8 @@ class Turtle:
         self._track_svg_path = tsp
 
     def reset(self):
-        self._heading = 0
+        self._heading = 0.0
+        self._tilt = 0.0
         self._stretchfactor = (1., 1.)
         self.down ()
         self.color ('black', 'black')
@@ -733,7 +736,7 @@ class Turtle:
     #def done(self):
     #    self._flush()
 
-    def pensize(self, width):
+    def pensize(self, width=None):
         
         if width == None:
             return self._pensize
@@ -945,10 +948,10 @@ class Turtle:
         
         tilt_fix = 0
         if shape._type == 'polygon':
-            tilt_fix = -90   # polygons are designed pointing top, images look natural pointing right :-/
+            tilt_fix = -math.pi/2   # polygons are designed pointing top, images look natural pointing right :-/
             _trace(f"{tilt_fix=}")
 
-        rot = math.degrees(-self._heading) + tilt_fix
+        rot = math.degrees(-self._heading - self._tilt + tilt_fix) 
         _trace(f"{rot=}")
         scale = f"{self._stretchfactor[0]},{self._stretchfactor[1]}"
         translate = f"{self._position[0] + self.screen._offset[0]},{self.screen._offset[1] - self._position[1]}"
@@ -993,6 +996,59 @@ class Turtle:
         """
         self._heading =  (to_angle * math.pi / 180.0) % (2 * math.pi)
         self._update_transform()
+
+    def tiltangle(self, angle=None):
+        """Set or return the current tilt-angle.
+
+        Optional argument: angle -- number
+
+        Rotate the turtleshape to point in the direction specified by angle,
+        regardless of its current tilt-angle. DO NOT change the turtle's
+        heading (direction of movement).
+        If angle is not given: return the current tilt-angle, i. e. the angle
+        between the orientation of the turtleshape and the heading of the
+        turtle (its direction of movement).
+
+        Examples (for a Turtle instance named turtle):
+        >>> turtle.shape("circle")
+        >>> turtle.shapesize(5, 2)
+        >>> turtle.tiltangle()
+        0.0
+        >>> turtle.tiltangle(45)
+        >>> turtle.tiltangle()
+        45.0
+        >>> turtle.stamp()
+        >>> turtle.fd(50)
+        >>> turtle.tiltangle(-45)
+        >>> turtle.tiltangle()
+        315.0
+        >>> turtle.stamp()
+        >>> turtle.fd(50)
+        """
+        if angle is None:
+            return math.degrees(self._tilt)
+        else:
+            self._tilt = math.radians(angle) % (math.pi*2)
+            self._update_transform()
+
+    def tilt(self, angle):
+        """Rotate the turtleshape by angle.
+
+        Argument:
+        angle - a number
+
+        Rotate the turtleshape by angle from its current tilt-angle,
+        but do NOT change the turtle's heading (direction of movement).
+
+        Examples (for a Turtle instance named turtle):
+        >>> turtle.shape("circle")
+        >>> turtle.shapesize(5,2)
+        >>> turtle.tilt(30)
+        >>> turtle.fd(50)
+        >>> turtle.tilt(30)
+        >>> turtle.fd(50)
+        """
+        self.tiltangle(angle + self.tiltangle())
 
     def left(self, angle):
         _trace(f"left: prev heading {self._heading}")
@@ -1226,7 +1282,7 @@ class Turtle:
 
 
 
-def pensize(width):                    Turtle._screen._defaultTurtle.pensize(width)
+def pensize(width=None):                    return Turtle._screen._defaultTurtle.pensize(width)
 def color(pencolor, fillcolor = None): Turtle._screen._defaultTurtle.color(pencolor, fillcolor)
 def home():                            Turtle._screen._defaultTurtle.home()
 def goto(x, y = None):                 Turtle._screen._defaultTurtle.goto(x, y)
@@ -1249,16 +1305,20 @@ def left(angle):                       Turtle._screen._defaultTurtle.left(angle)
 def right(angle):                      Turtle._screen._defaultTurtle.right(angle)
 def begin_fill():                      Turtle._screen._defaultTurtle.begin_fill()
 def end_fill():                        Turtle._screen._defaultTurtle.end_fill()
-def speed(speed):                      Turtle._screen._defaultTurtle.speed(speed)
+def heading():                         return Turtle._screen._defaultTurtle.heading() 
+def tiltangle(angle=None):             return Turtle._screen._defaultTurtle.tiltangle(angle)
+def tilt(angle):                       return Turtle._screen._defaultTurtle.tilt(angle) 
+
+def speed(speed):                      return Turtle._screen._defaultTurtle.speed(speed)
 def setheading(angle):                 Turtle._screen._defaultTurtle.setheading(angle)
 def hideturtle():                      Turtle._screen._defaultTurtle.hideturtle()
 def ht():                      Turtle._screen._defaultTurtle.hideturtle()
 def showturtle():                      Turtle._screen._defaultTurtle.showturtle()
 def st():                      Turtle._screen._defaultTurtle.showturtle()
-def pencolor(*args):           Turtle._screen._defaultTurtle.pencolor(*args)
-def fillcolor(*args):          Turtle._screen._defaultTurtle.fillcolor(*args)
+def pencolor(*args):           return Turtle._screen._defaultTurtle.pencolor(*args)
+def fillcolor(*args):          return Turtle._screen._defaultTurtle.fillcolor(*args)
 def shapesize(stretch_wid=None, stretch_len=None):          Turtle._screen._defaultTurtle.shapesize(stretch_wid, stretch_len)
-def shape(name=None): Turtle._screen._defaultTurtle.shape(name)
+def shape(name=None): return Turtle._screen._defaultTurtle.shape(name)
 def dot(radius):     Turtle._screen._defaultTurtle.dot(radius)
 def circle(radius):     Turtle._screen._defaultTurtle.circle(radius)
 def write(arg, align="left", font=("Arial", 8, "normal")): Turtle._screen._defaultTurtle.write(arg, align=align, font=font)

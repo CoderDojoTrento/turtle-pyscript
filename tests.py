@@ -60,6 +60,40 @@ async def test_turtleps():
     
     _info("TEST TURTLEPS: DONE...")
 
+async def test_tilt():
+    screen = Screen()
+    screen.register_shape('img/turtle.svg')
+
+    ada = Turtle()
+    bob = Turtle()
+
+
+    ada.shape('img/turtle.svg')
+    heading_before = ada.heading()
+
+    await asyncio.sleep(0.5)
+    ada.tilt(40)
+    assert heading_before == ada.heading()
+
+    for i in range(4):
+        await asyncio.sleep(0.5)
+        ada.forward(100)
+        await asyncio.sleep(0.5)
+        ada.left(90)
+
+
+    await asyncio.sleep(0.5)
+    bob.tilt(-40)
+    bob.setheading(-90)
+    assert heading_before == ada.heading()
+
+    await asyncio.sleep(0.5)
+    bob.forward(100)
+    await asyncio.sleep(0.5)
+    bob.left(90)
+    await asyncio.sleep(0.5)
+    bob.forward(100)
+
 
 
 async def test_shapesize_one():
