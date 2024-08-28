@@ -4,7 +4,7 @@
 
 Turtle graphics in the browser with [Pyscript](https://pyscript.net/)!
 
-Since we are using Pyscript, NO server side is needed, and *all* python code runs entirely in the browser 
+Since we are using Pyscript, NO server side is needed: *all* python code runs entirely in the browser 
 in a real CPython environment. 
 
 **STATUS: BETA**
@@ -13,7 +13,7 @@ in a real CPython environment.
 
 **EXAMPLES**: see [tests.py](tests.py)
 
-**Turtle API:** We try to be faithful to original api as much as we can, currently we support most important things and it should work, it was tested successfully in a high school classroom. 
+**Turtle API:** We try to be faithful to original api as much as we can. Currently we support most important things and it should work. Tested successfully in a high school classroom. 
 
 Most noticeable problems: 
 
