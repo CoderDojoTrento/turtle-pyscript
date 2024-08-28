@@ -8,10 +8,17 @@ An experiment to make turtle graphics work with [Pyscript](https://pyscript.net/
 Since we are using Pyscript, NO server side is needed, and *all* python code runs entirely in the browser 
 in a real CPython environment. 
 
-**STATUS: PRE-ALPHA**
+**STATUS: BETA**
 
-Code is very dirty and unpolished.
+**DEMO**: https://coderdojotrento.github.io/turtle-pyscript/
+**EXAMPLES**: see [tests.py](tests.py)
 
+**Turtle API:** We try to be faithful to original api as much as we canm currently we support most important things and it should work, it was tested successfully in a high school classroom. 
+
+**NOTE 1**: movements are currently immediate, [see issue about concurrency](https://github.com/CoderDojoTrento/turtle-pyscript/issues/8).
+**NOTE 2**: Stamp is currently buggy
+
+**Sprite API** We also provide a `Sprite` API is built on top of Turtle which is in flux and subject to change.
 
 ## Deploy
 
@@ -76,7 +83,7 @@ As graphical display we use a native `<svg>` element in the browser. This has th
 
 
 Typically for videogames you would choose `<canvas>`, as svg is slower for videogames but 
-since lib is thought for educational purposes svg is sufficient.
+since this lib is thought for educational purposes we think svg is sufficient.
 
 
 ### Developer notes
