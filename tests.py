@@ -355,22 +355,30 @@ async def test_quadrato_pieno():
 async def test_storytelling():
     hideturtle()  # nasconde quella di default
 
-    ada = Sprite()                                # crea una NUOVA tartaruga
-    ada.hideturtle()
-    ada.screen.bgpic("img/bg-seaside-2.gif") 
+    screen = Screen()
+    screen.bgpic("img/bg-seaside-2.gif") 
+    screen.register_shape("img/ch-archeologist-e.gif")
+    screen.register_shape("img/ch-arctic-big-e.gif")
 
-    ada.load_image("img/ch-archeologist-e.gif")  # nostro comando speciale
-    ada.penup()                                   # su la penna!
-    ada.goto(-100,0)                              # spostati sul lato sinistro
+    await asyncio.sleep(0.5)  # to allow loading of images
+
+    ada = Sprite()                                # Sprite instead of Turtle
+    ada.hideturtle()
+    
+    ada.load_image("img/ch-archeologist-e.gif")   # looks east
+    ada.penup()  
+    ada.goto(-100,0)                              # move to left side 
     ada.showturtle()                                
 
     bob = Sprite()
     bob.hideturtle()
-    bob.load_image("img/ch-arctic-big-w.gif")
+    bob.load_image("img/ch-arctic-big-e.gif")   # looks east
+    bob.shapesize(-1.0,1.0)   # looks left keeping head on top
     bob.penup()
     bob.goto(100,0)
     bob.showturtle()
 
+    
     await ada.say("Ciao! Io sono Ada!", 3)
     await ada.say("Tu come ti chiami?", 3)
     await bob.say("Io sono Bob!", 2)
@@ -378,22 +386,47 @@ async def test_storytelling():
     await ada.say("Si vede!", 2)
     await ada.say("Esploriamo la foresta?", 4)
     await bob.say("Ok!", 2)
-    bob.goto(250, 0)
-    ada.goto(250, 0)
+    bob.shapesize(1.0,1.0)    # looks right
+    
+    for i in range(28):
+        bob.goto(bob.xcor()+5, bob.ycor())
+        await asyncio.sleep(0.05)
 
+    for i in range(65):
+        ada.goto(ada.xcor()+5, ada.ycor())
+        await asyncio.sleep(0.02)
+
+    bob.shapesize(-1.0, 1.0)  # looks left
+    #bob.goto(250, 0)   # currently immediate
+    #ada.goto(250, 0)   # currently immediate
+    
     ada.screen.bgpic("img/bg-forest-1.gif")
-    ada.speed(0)   # velocissima
-    bob.speed(0)   # velocissimo
+    #ada.speed(0)   # currently not supported
+    #bob.speed(0)   # currently not supported
+
     bob.goto(-200, 0)
-    ada.goto(-200, 0)
-    ada.speed(5)   # normale
-    bob.speed(5)   # normale
-    ada.goto(-100, -0)
-    bob.goto(100, -0)
+    ada.goto(-230, 0)
+    ada.speed(5)   # normal - currently not supported
+    bob.speed(5)   # normal - currently not supported
+
+    bob.shapesize(1.0, 1.0)  # looks right
+
+    for i in range(60):
+        bob.goto(bob.xcor()+5, bob.ycor())
+        await asyncio.sleep(0.05)
+
+    bob.shapesize(-1.0, 1.0)  # looks left
+    
+    for i in range(27):
+        ada.goto(ada.xcor()+5, ada.ycor())
+        await asyncio.sleep(0.02)
+
+    #ada.goto(-100, -0)   # currently immediate
+    #bob.goto(100, -0)    # currently immediate
 
     await ada.say("Qua fa più fresco!", 3)
     await bob.say("Per me è ancora troppo caldo!", 6)
-
+    
 
 def test_load_image():
     ada = Sprite()
@@ -431,6 +464,13 @@ async def test_layers():
     ada.to_background()
 
 
+def test_lag():
+    
+    for i in range(500):
+        forward(100)
+        left(90)
+        color('red')  # should create a new path
+
 async def test_interactive_loop():
 
     screen = Screen()
@@ -442,20 +482,24 @@ async def test_interactive_loop():
 
     rocket = Sprite()
     rocket.shape("img/vh-rocket-1ut.gif")  # rocket looks up
-    rocket.pencolor("yellow")
     rocket.pensize(5)
-    
-
+    rocket.pendown()
     rocket.tilt(-90)   # fix image orientation - NOTE: original Python turtle doesn't allow this for images, only for polygons!
     
-    await rocket.say("Are you ready?", 2)  # outside main loop we can use await stuff for intro animations
+    # outside main loop we can use await stuff for intro animations
+
+    await rocket.say("Are you ready?", 2)  
     await rocket.say("Use arrow keys!", 2)  
     
 
     init_engine()
 
     def update():
-        
+        # workaround for lag:  https://github.com/CoderDojoTrento/turtle-pyscript/issues/18 
+        # if you keep setting color, it creates a new svg path element, which is faster than 
+        # enlarging the current path string
+        rocket.color('yellow') 
+
         if pressed("ArrowUp"):
             print("ArrowUp")
             rocket.forward(5)

@@ -598,7 +598,6 @@ class _Screen:
             
 
     def reset(self):
-        
         if self._timer:
             clearTimeout(self._timer)   # js
         self.bgcolor('white')
@@ -719,7 +718,7 @@ class Turtle:
 
     def _flush(self):
         
-        _debug('Flush:', self._track)
+        _trace('Flush:', self._track)
 
         if len(self._track) > 1:
             tsp = self._track_svg_path
@@ -857,14 +856,16 @@ class Turtle:
             self._position = [x, y]
 
 
-        self._track.append('{} {} {}'.format(
-            'L' if self._down else 'M',
-            self._position[0] + self.screen._offset[0],
-            self.screen._offset[1] - self._position[1])
-        )
+        if self._down:
+            _trace("goto: self._down")
+            self._track.append('{} {} {}'.format(
+                'L' if self._down else 'M',
+                self._position[0] + self.screen._offset[0],
+                self.screen._offset[1] - self._position[1])
+            )
+            self._flush()
 
         self._update_transform()
-        self._flush()
 
     def _moveto(self, x, y = None):
         wasdown = self.isdown()
@@ -882,15 +883,18 @@ class Turtle:
     def forward(self, length):
         self._position = self._predict(length)
 
-        
-        self._track.append('{} {} {}'.format(
-            'L' if self._down else 'M',
-            self._position[0] + self.screen._offset[0],
-            self.screen._offset[1] - self._position[1])   
-         )
-        self._update_transform()
-        self._flush()
+        if self._down:
+            _trace("goto: self._down")
 
+            self._track.append('{} {} {}'.format(
+                'L' if self._down else 'M',
+                self._position[0] + self.screen._offset[0],
+                self.screen._offset[1] - self._position[1])   
+            )
+            self._flush()
+
+        self._update_transform()
+        
     def back(self, length):
         self.forward(-length)
 
@@ -1559,7 +1563,8 @@ def pressed(key: str):
 
 
 def init_engine():
-    
+    #TODO this function probably is not needed
+
      #init input
     add_event_listener(
         document,
