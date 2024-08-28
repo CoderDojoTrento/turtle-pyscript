@@ -14,10 +14,11 @@ from pyscript import window, document
 from pyodide.http import open_url
 from pyodide.ffi.wrappers import set_timeout
 from pyodide.ffi.wrappers import add_event_listener
+import asyncio
 
 
 from turtleps import *
-import asyncio
+
 
 
 ctx = None

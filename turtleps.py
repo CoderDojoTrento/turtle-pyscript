@@ -882,6 +882,7 @@ class Turtle:
     def forward(self, length):
         self._position = self._predict(length)
 
+        
         self._track.append('{} {} {}'.format(
             'L' if self._down else 'M',
             self._position[0] + self.screen._offset[0],
@@ -1477,11 +1478,6 @@ class Sprite(Turtle):
         tfumetto.clear()
 
 
-
-    
-  
-  
-  
 
 
 """

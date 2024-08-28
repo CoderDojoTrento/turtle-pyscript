@@ -431,6 +431,49 @@ async def test_layers():
     ada.to_background()
 
 
+async def test_interactive_loop():
+
+    screen = Screen()
+    screen.bgpic("img/bg-space-1.gif") 
+    screen.register_shape("img/bg-space-1.gif")
+    screen.register_shape("img/vh-rocket-1ut.gif")
+
+    await asyncio.sleep(0.3)  # TODO improve when we have proper awaiting register_shape
+
+    rocket = Sprite()
+    rocket.shape("img/vh-rocket-1ut.gif")  # rocket looks up
+    rocket.pencolor("yellow")
+    rocket.pensize(5)
+    
+
+    rocket.tilt(-90)   # fix image orientation - NOTE: original Python turtle doesn't allow this for images, only for polygons!
+    
+    await rocket.say("Are you ready?", 2)  # outside main loop we can use await stuff for intro animations
+    await rocket.say("Use arrow keys!", 2)  
+    
+
+    init_engine()
+
+    def update():
+        
+        if pressed("ArrowUp"):
+            print("ArrowUp")
+            rocket.forward(5)
+
+        if pressed("ArrowLeft"):
+            print("ArrowLeft")
+            rocket.left(6)
+
+        if pressed("ArrowRight"):
+            print("ArrowRight")
+            rocket.right(6)
+
+        set_timeout(update, interval)    
+
+
+    update()
+
+
 """
 #stop_button = pydom[".cdtn-stop-button"]
 
