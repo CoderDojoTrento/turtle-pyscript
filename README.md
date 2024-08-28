@@ -2,8 +2,7 @@
 
 ## by CoderDojo Trento
 
-
-An experiment to make turtle graphics work with [Pyscript](https://pyscript.net/)
+Turtle graphics in the browser with [Pyscript](https://pyscript.net/)!
 
 Since we are using Pyscript, NO server side is needed, and *all* python code runs entirely in the browser 
 in a real CPython environment. 
@@ -16,14 +15,14 @@ in a real CPython environment.
 
 **Turtle API:** We try to be faithful to original api as much as we can, currently we support most important things and it should work, it was tested successfully in a high school classroom. 
 
-Current most noticeable problems: 
+Most noticeable problems: 
 
 - movements are currently always immediate, [see issue about concurrency](https://github.com/CoderDojoTrento/turtle-pyscript/issues/8).
 - Stamp is currently buggy ([see issue](https://github.com/CoderDojoTrento/turtle-pyscript/issues/13))
 - There is noticeable lag ([see issue](https://github.com/CoderDojoTrento/turtle-pyscript/issues/18)) if you have the pen down, to prevent it keep calling `color('yellow')`
 
 
-**Sprite API:** We also provide a `Sprite` API built on top of `Turtle` which is in flux and subject to change.
+**Game engine**: We also provide an experimental `Sprite` API built on top of `Turtle` which is in flux and subject to change.
 
 ## Deploy
 
