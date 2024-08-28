@@ -11,14 +11,15 @@ in a real CPython environment.
 **STATUS: BETA**
 
 **DEMO**: https://coderdojotrento.github.io/turtle-pyscript/
+
 **EXAMPLES**: see [tests.py](tests.py)
 
-**Turtle API:** We try to be faithful to original api as much as we canm currently we support most important things and it should work, it was tested successfully in a high school classroom. 
+**Turtle API:** We try to be faithful to original api as much as we can, currently we support most important things and it should work, it was tested successfully in a high school classroom. 
 
-**NOTE 1**: movements are currently immediate, [see issue about concurrency](https://github.com/CoderDojoTrento/turtle-pyscript/issues/8).
-**NOTE 2**: Stamp is currently buggy
+- NOTE 1: movements are currently immediate, [see issue about concurrency](https://github.com/CoderDojoTrento/turtle-pyscript/issues/8).
+- NOTE 2: Stamp is currently buggy
 
-**Sprite API** We also provide a `Sprite` API is built on top of Turtle which is in flux and subject to change.
+**Sprite API:** We also provide a `Sprite` API built on top of `Turtle` which is in flux and subject to change.
 
 ## Deploy
 
