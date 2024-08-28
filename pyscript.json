@@ -1,6 +1,6 @@
 {
     "files": {
-        "{PATH}": "",
+        "{PATH}": "/turtle-pyscript",
         "{PATH}/turtleps.py" : "turtleps.py",
         "{PATH}/tests.py" : "tests.py"
       },
