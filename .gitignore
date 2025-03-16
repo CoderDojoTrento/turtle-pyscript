@@ -1,4 +1,7 @@
 
+build/
+
+/test.html
 
 *.kate-swp
 *.kdev4

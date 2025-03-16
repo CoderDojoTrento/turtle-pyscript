@@ -67,6 +67,16 @@ It will warn you the certificate is not signed, just click proceed.
 
 **NOTE**: DON'T run this test server in production, you don't need it and it would also be unsafe.
 
+### Test
+
+Since all tests are ui related, for now I'm using a gitignored `test.html` in root folder
+
+To make all tests in `build/test`:
+
+```bash
+python3 test/build_tests.py 
+```
+
 
 ## Technical stuff
 
