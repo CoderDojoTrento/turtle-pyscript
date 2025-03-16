@@ -9,7 +9,12 @@ in a real CPython environment.
 
 **STATUS: BETA**
 
-**DEMO**: https://coderdojotrento.github.io/turtle-pyscript/
+**SPACE EXPLORER DEMO**: https://coderdojotrento.github.io/turtle-pyscript/main.html
+
+**STORYTELLING DEMO**: https://coderdojotrento.github.io/turtle-pyscript/storytelling.html
+
+**ALL TESTS**: https://coderdojotrento.github.io/turtle-pyscript/index.html
+
 
 **EXAMPLES**: see [tests.py](tests.py)
 
