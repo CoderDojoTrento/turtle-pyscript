@@ -841,6 +841,7 @@ class Turtle:
         return math.sqrt (dX * dX + dY * dY)
 
     def penup(self):
+        _info('penup')
         self._down = False
 
     def pendown(self):
@@ -1400,6 +1401,11 @@ Eventually, what follows will go into a separate file
 #from turtleps import *
 import asyncio
 
+async def ge_loaded():
+    """
+    Waits until all images and resources are loaded
+    """
+    await asyncio.sleep(0.5)  # TODO horror
 
 class CDTNException(Exception):
     pass
@@ -1408,9 +1414,35 @@ class CDTNException(Exception):
 """
 class Sprite(Turtle):
 
-    def load_image(self, image):
-        self.screen.register_shape(image)
-        self.shape(image)
+    def __init__( self, 
+                  screen=None,
+                  shape=_CFG["shape"],        # NOTE: this is meant to be an id
+                  visible=_CFG["visible"]):
+        super().__init__(screen, shape, visible)
+        self.penup()  # no need for pen in most videogames..
+
+    def hide(self):
+        self.hideturtle()
+
+    def show(self):
+        self.showturtle()
+
+    @property
+    def x(self):
+        return self._position[0]
+
+    @x.setter
+    def x(self, value: float):
+        self.goto(value)
+
+    @property
+    def y(self):
+        return self._position[1]
+
+    @y.setter
+    def y(self, value: float):
+        self.goto(self._position[0], value)
+
 
     def to_foreground(self):
 

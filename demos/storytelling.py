@@ -10,23 +10,16 @@ async def run():
     screen.register_shape("img/ch-archeologist-e.gif")
     screen.register_shape("img/ch-arctic-big-e.gif")
 
-    await asyncio.sleep(0.5)  # to allow loading of images
+    await ge_loaded()
 
     ada = Sprite()                                # Sprite instead of Turtle
-    ada.hideturtle()
-
-    ada.load_image("img/ch-archeologist-e.gif")   # looks east
-    ada.penup()  
+    ada.shape("img/ch-archeologist-e.gif")   # looks east
     ada.goto(-100,0)                              # move to left side 
-    ada.showturtle()                                
 
     bob = Sprite()
-    bob.hideturtle()
-    bob.load_image("img/ch-arctic-big-e.gif")   # looks east
+    bob.shape("img/ch-arctic-big-e.gif")   # looks east
     bob.shapesize(-1.0,1.0)   # looks left keeping head on top
-    bob.penup()
     bob.goto(100,0)
-    bob.showturtle()
 
 
     await ada.say("Ciao! Io sono Ada!", 3)
@@ -39,11 +32,11 @@ async def run():
     bob.shapesize(1.0,1.0)    # looks right
 
     for i in range(28):
-        bob.goto(bob.xcor()+5, bob.ycor())
+        bob.goto(bob.x + 5, bob.y)
         await asyncio.sleep(0.05)
 
     for i in range(65):
-        ada.goto(ada.xcor()+5, ada.ycor())
+        ada.goto(ada.x+5, ada.y)
         await asyncio.sleep(0.02)
 
     bob.shapesize(-1.0, 1.0)  # looks left
@@ -62,13 +55,13 @@ async def run():
     bob.shapesize(1.0, 1.0)  # looks right
 
     for i in range(60):
-        bob.goto(bob.xcor()+5, bob.ycor())
+        bob.goto(bob.x + 5, bob.y)
         await asyncio.sleep(0.05)
 
     bob.shapesize(-1.0, 1.0)  # looks left
 
     for i in range(27):
-        ada.goto(ada.xcor()+5, ada.ycor())
+        ada.goto(ada.x + 5, ada.y)
         await asyncio.sleep(0.02)
 
     #ada.goto(-100, -0)   # currently immediate

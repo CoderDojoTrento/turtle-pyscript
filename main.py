@@ -5,7 +5,7 @@ screen.bgpic("img/bg-space-1.gif")
 screen.register_shape("img/bg-space-1.gif")
 screen.register_shape("img/vh-rocket-1ut.gif")
 
-await asyncio.sleep(0.3)  # TODO improve when we have proper awaiting register_shape
+await ge_loaded()
 
 rocket = Sprite()
 rocket.shape("img/vh-rocket-1ut.gif")  # rocket looks up
