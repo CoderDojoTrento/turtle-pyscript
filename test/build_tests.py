@@ -4,7 +4,7 @@ import glob
 
 
 demos_paths = sorted([fpath for fpath in glob.glob("demos/*.py")]) 
-tests_paths = sorted([fpath for fpath in glob.glob("test/test_ui_*.py")])
+tests_paths = sorted([fpath for fpath in glob.glob("test/uitest_*.py")])
 
 prj_paths = ['main.py'] + demos_paths + tests_paths
 print("Found paths", prj_paths)
@@ -64,28 +64,28 @@ all_tests_index = f"""
 """
 
 
-if os.path.exists('build/test'): 
-    print("Deleting", 'build/test/', '...')
-    shutil.rmtree('build/test')
+if os.path.exists('_build/test'): 
+    print("Deleting", '_build/test/', '...')
+    shutil.rmtree('_build/test')
 
-print('Creating', 'build/test', '...')
-os.makedirs('build/test')
+print('Creating', '_build/test', '...')
+os.makedirs('_build/test')
 
-with open('build/test/index.html','w', encoding='utf-8') as fall_tests_out:
+with open('_build/test/index.html','w', encoding='utf-8') as fall_tests_out:
     fall_tests_out.write(all_tests_index)
 
-shutil.copytree('css', 'build/test/css')
-shutil.copytree('img', 'build/test/img')
+shutil.copytree('css', '_build/test/css')
+shutil.copytree('img', '_build/test/img')
 
-shutil.copytree('test/css', 'build/test/css', dirs_exist_ok=True)
+shutil.copytree('test/css', '_build/test/css', dirs_exist_ok=True)
 
-#shutil.copytree('demos', 'build/test/', dirs_exist_ok=True)
+#shutil.copytree('demos', '_build/test/', dirs_exist_ok=True)
 
 for fpath in prj_paths:
-    shutil.copy(fpath, 'build/test/')
-    #print('Wrote', 'build/test/{}')
+    shutil.copy(fpath, '_build/test/')
+    #print('Wrote', '_build/test/{}')
 
-shutil.copyfile('turtleps.py', 'build/test/turtleps.py')
+shutil.copyfile('turtleps.py', '_build/test/turtleps.py')
 
 
 for prj_name in prj_names:
@@ -94,7 +94,7 @@ for prj_name in prj_names:
     with open(f'index.html', encoding='utf-8') as ftest_html_in:
         test_index = ftest_html_in.read()
 
-        with open(f'build/test/{prj_name}.html','w', encoding='utf-8') as ftest_html_out:
+        with open(f'_build/test/{prj_name}.html','w', encoding='utf-8') as ftest_html_out:
             
             sout = test_index.replace('Turtle Pyscript', prj_name) \
                              .replace('main.py', f'{prj_name}.py')
@@ -108,13 +108,13 @@ for prj_name in prj_names:
                 sout = sout.replace('</section>',extra_run + '</section>') 
                 
             ftest_html_out.write(sout)
-            print('Wrote', f'build/test/{prj_name}.html')
+            print('Wrote', f'_build/test/{prj_name}.html')
 
 
 with open('pyscript.json', encoding='utf-8') as fpyscript_json:
     sin = fpyscript_json.read()
-    path = 'build/test'  # no trailing slash
-    with open('build/test/pyscript.json', 'w', encoding='utf-8') as fpyscript_json_out:
+    path = '_build/test'  # no trailing slash
+    with open('_build/test/pyscript.json', 'w', encoding='utf-8') as fpyscript_json_out:
         #    sout = sin.replace('"{PATH}": "",', '"{PATH}": "'+ path + '",')
         sout = sin
         fpyscript_json_out.write(sout)
@@ -138,6 +138,6 @@ print()
 print('DONE.')
 print()
 print()
-print('    Tests are available at',"       https://127.0.0.1:8008/build/test/   ")
+print('    Tests are available at',"       https://127.0.0.1:8008/_build/test/   ")
 print()
 print()

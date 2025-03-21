@@ -5,7 +5,7 @@ screen.bgpic("img/bg-space-1.gif")
 screen.register_shape("img/bg-space-1.gif")
 screen.register_shape("img/vh-rocket-1ut.gif")
 
-await ge_loaded()
+await ge_init()
 
 rocket = Sprite()
 rocket.shape("img/vh-rocket-1ut.gif")  # rocket looks up
@@ -39,7 +39,7 @@ def update():
         print("ArrowRight")
         rocket.right(6)
 
-    set_timeout(update, interval)    
+    set_timeout(update, ge_frame_interval * 1000)    
 
 
 update()

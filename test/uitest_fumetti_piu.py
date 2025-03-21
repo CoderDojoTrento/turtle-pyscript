@@ -9,7 +9,9 @@ tps._tracing = False
 tps._info("TEST FUMETTI: BEGINNING...")
 t = Sprite()
 t.speed(10)
-t.load_image('img/ch-archeologist-e.gif')
+
+
+t._load_image('img/ch-archeologist-e.gif')
 
 await t.say("abcdefghilmnopqrstuvzABCDEFGHILMNOPQRSTUVZ",2)
 await t.say("Più in alto",2, dy = 120)

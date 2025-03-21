@@ -841,7 +841,6 @@ class Turtle:
         return math.sqrt (dX * dX + dY * dY)
 
     def penup(self):
-        _info('penup')
         self._down = False
 
     def pendown(self):
@@ -850,11 +849,17 @@ class Turtle:
     def isdown(self): 
         return self._down
 
-    def goto(self, x, y = None):
+    def goto(self, x_or_pair, y = None):
+        """Move turtle to an absolute position.
+
+        Arguments:
+        x -- a number      or     a pair/vector of numbers
+        y -- a number             None
+        """
         if y is None:
-            self._position = x
+            self._position = x_or_pair
         else:
-            self._position = [x, y]
+            self._position = [x_or_pair, y]
 
 
         if self._down:
@@ -1401,10 +1406,11 @@ Eventually, what follows will go into a separate file
 #from turtleps import *
 import asyncio
 
-async def ge_loaded():
+async def ge_init():
+    """ Waits until all images and resources are loaded
     """
-    Waits until all images and resources are loaded
-    """
+    hideturtle()  # dont need it in most games..
+    # TODO set speed 0 ?
     await asyncio.sleep(0.5)  # TODO horror
 
 class CDTNException(Exception):
@@ -1427,13 +1433,21 @@ class Sprite(Turtle):
     def show(self):
         self.showturtle()
 
+
+    def _load_image(self, image):
+        """ Experimental, should be awaitable, don't use it...
+        """
+        screen = Screen()
+        screen.register_shape(image)
+        self.shape(image)
+
     @property
     def x(self):
         return self._position[0]
 
     @x.setter
     def x(self, value: float):
-        self.goto(value)
+        self.goto(value, self._position[1])
 
     @property
     def y(self):
@@ -1442,7 +1456,6 @@ class Sprite(Turtle):
     @y.setter
     def y(self, value: float):
         self.goto(self._position[0], value)
-
 
     def to_foreground(self):
 
@@ -1513,6 +1526,18 @@ class Sprite(Turtle):
         await asyncio.sleep(seconds)
         tfumetto.clear()
 
+    async def slide(sprite, x, y, seconds=1):
+        """ Slowly moves toward a point in a given time. Note this function is async.
+        """
+        frames = seconds * ge_framerate
+        sides = x - sprite.x, y - sprite.y
+        delta_space = (sides[0] / frames), (sides[1] / frames)
+        _debug(f"{delta_space}=")
+        _debug(f"{sprite.x}=")
+        for i in range(frames):
+            sprite.x += delta_space[0]            
+            sprite.y += delta_space[1]
+            await asyncio.sleep(ge_frame_interval)
 
 
 
@@ -1548,7 +1573,10 @@ import asyncio
 
 
 ctx = None
-interval=20  # TODO  millisecs
+
+ge_framerate = 60
+ge_frame_interval = (1 / ge_framerate)  # secs
+
 
 _pressedKeys = {
 }

@@ -1,5 +1,5 @@
-
-build/
+_private/
+_build/
 
 /test.html
 

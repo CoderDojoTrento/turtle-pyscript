@@ -7,6 +7,6 @@ tps._debugging = True
 tps._tracing = False
 
 ada = Sprite()
-ada.load_image("img/ch-archeologist-e.gif")
+ada._load_image("img/ch-archeologist-e.gif")
 ada = Sprite()
-ada.load_image("img/ch-archeologist-e.gif")
+ada._load_image("img/ch-archeologist-e.gif")

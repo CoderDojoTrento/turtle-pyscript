@@ -9,7 +9,7 @@ tps._tracing = False
 tps._info("TEST FUMETTI CIAO: BEGINNING...")
 t = Sprite()
 t.speed(10)
-t.load_image('img/ch-archeologist-e.gif')
+t._load_image('img/ch-archeologist-e.gif')
 
 await t.say("Ciao1", 1)
 t.goto(-250, 0)

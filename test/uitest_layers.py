@@ -7,10 +7,10 @@ tps._debugging = True
 tps._tracing = False
 
 ada = Sprite()
-ada.load_image("img/ch-archeologist-e.gif")
+ada._load_image("img/ch-archeologist-e.gif")
 
 bob = Sprite()
-bob.load_image("img/ch-arctic-big-w.gif")
+bob._load_image("img/ch-arctic-big-w.gif")
 
 await asyncio.sleep(1)
 

@@ -11,7 +11,7 @@ for i in range(5):
     stamp()
 
 ada = Sprite()
-ada.load_image("img/ch-archeologist-e.gif")
+ada._load_image("img/ch-archeologist-e.gif")
 ada.goto(-100,-100)
 for i in range(5):
     goto(i*50-150,0)
