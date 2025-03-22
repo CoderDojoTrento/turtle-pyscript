@@ -5,9 +5,18 @@
 from pyodide.ffi.wrappers import add_event_listener
 import uuid
 import re
-import urllib
 
+# see https://github.com/CoderDojoTrento/turtle-pyscript/issues/8
+_running_tasks = set()
 
+def _schedule_task(awaitable):
+    """
+    @since 0.8
+    """
+    t = asyncio.create_task(awaitable)
+    _running_tasks.add(t)
+    t.add_done_callback(lambda t: _running_tasks.remove(t))
+    return t
 """
 Aug 2024:
 TURTLE MODULE TAKEN FROM transcrypt (apache licence)
@@ -229,7 +238,6 @@ class Shape(object):
             #img.setAttributeNS(None, 'width', 20)
             #img.setAttributeNS(None, 'height', 20)
             #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
-            #enc_data = urllib.parse.quote(data)
             img.setAttributeNS(None, 'href', data)
             
             self.svg = img 
@@ -1474,18 +1482,30 @@ class Sprite(Turtle):
 
     @property
     def x(self):
+        """
+            @since 0.8
+        """
         return self._position[0]
 
     @x.setter
     def x(self, value: float):
+        """
+            @since 0.8
+        """        
         self.goto(value, self._position[1])
 
     @property
     def y(self):
+        """
+            @since 0.8
+        """        
         return self._position[1]
 
     @y.setter
     def y(self, value: float):
+        """
+            @since 0.8
+        """        
         self.goto(self._position[0], value)
 
     def to_foreground(self):
@@ -1503,7 +1523,10 @@ class Sprite(Turtle):
             ss.appendChild(self.svg)
 
 
-    async def say(self, text, seconds, dx=0, dy=65):
+    async def _say(self, text, seconds, dx=0, dy=65):
+        """
+            @since 0.8
+        """
         #if dy == None:
             #_debug(f"sprite.svg")
             #_debug(f"{sprite.svg.getBBox()=}")
@@ -1557,19 +1580,39 @@ class Sprite(Turtle):
         await asyncio.sleep(seconds)
         tfumetto.clear()
 
-    async def slide(sprite, x, y, seconds=1):
-        """ Slowly moves toward a point in a given time. Note this function is async.
+    def say(self, text,seconds, dx=0, dy=65):
+        """ Shows text in a popup withc distance dx,dy from the sprite
+
+            You can optionally call this function with await
+
+            @since 0.8: optionally awaitable
+        """
+        return _schedule_task(self._say(text,seconds,dx,dy))
+
+
+    async def _slide(self,x,y,seconds):
+        """
+            @since 0.8
         """
         frames = seconds * ge_framerate
-        sides = x - sprite.x, y - sprite.y
+        sides = x - self.x, y - self.y
         delta_space = (sides[0] / frames), (sides[1] / frames)
         _debug(f"{delta_space}=")
-        _debug(f"{sprite.x}=")
+        _debug(f"{self.x}=")
         for i in range(frames):
-            sprite.x += delta_space[0]            
-            sprite.y += delta_space[1]
+            self.x += delta_space[0]            
+            self.y += delta_space[1]
             await asyncio.sleep(ge_frame_interval)
 
+
+    def slide(self, x, y, seconds=1):
+        """ Slowly moves toward a point in a given time. 
+
+            You can call optionally call this function with await
+
+            @since 0.8
+        """        
+        return _schedule_task(self._slide(x,y,seconds))
 
 
 """
