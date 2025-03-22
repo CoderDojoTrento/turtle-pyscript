@@ -42,10 +42,12 @@ async def run():
     ada.goto(-230, 0)
 
     ada.shapesize(1.0, 1.0)  # looks right
-    bob.shapesize(-1.0, 1.0)  # looks left
+    bob.shapesize(1.0, 1.0)  # looks right
 
     await asyncio.gather(ada.slide(-100, -0, 2),   
                          bob.slide(100, -0, 2))    
+
+    bob.shapesize(-1.0, 1.0)  # looks left
 
     await ada.say("Qua fa più fresco!", 3)
     await bob.say("Per me è ancora troppo caldo!", 6)
