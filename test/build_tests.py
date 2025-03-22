@@ -71,6 +71,7 @@ if os.path.exists('_build/test'):
 
 print('Creating', '_build/test', '...')
 os.makedirs('_build/test')
+os.makedirs('_build/test/test') # for extra test stuff
 
 with open('_build/test/index.html','w', encoding='utf-8') as fall_tests_out:
     fall_tests_out.write(all_tests_index)
@@ -79,7 +80,7 @@ shutil.copytree('css', '_build/test/css')
 shutil.copytree('img', '_build/test/img')
 
 shutil.copytree('test/css', '_build/test/css', dirs_exist_ok=True)
-shutil.copytree('test/img', '_build/test/img', dirs_exist_ok=True)
+shutil.copytree('test/img', '_build/test/test/img')
 
 
 #shutil.copytree('demos', '_build/test/', dirs_exist_ok=True)
