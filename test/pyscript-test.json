@@ -2,9 +2,9 @@
     "files": {
         "{PATH}": "",
         "{PATH}/turtleps.py" : "turtleps.py",
-        "{PATH}/tests.py" : "tests.py",
+        "{PATH}/test/uitest_api.py" : "uitest_api.py",
         "{PATH}/demos/storytelling.py" : "storytelling.py"
       },
       
-    "packages": []
+    "packages": ["pytest"]
 }

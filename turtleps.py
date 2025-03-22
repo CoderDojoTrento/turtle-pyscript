@@ -4,6 +4,8 @@
 
 from pyodide.ffi.wrappers import add_event_listener
 import uuid
+import re
+import urllib
 
 
 """
@@ -80,6 +82,15 @@ def _parse_color_args(*args):
     else:
         raise TurtleGraphicsError(f"Unrecognized color format: {args}")
     return svg_color
+
+def _sanitize_id(name):
+    """ Valid stuff: any unicode international character, digit, - 
+        Invalid characters will be converted to -
+
+        @since 0.7.3
+    """
+    ret = re.sub(r"[^\w0-9\-_]", '-', name)
+    return ret
 
 from js import (
     document,
@@ -218,6 +229,7 @@ class Shape(object):
             #img.setAttributeNS(None, 'width', 20)
             #img.setAttributeNS(None, 'height', 20)
             #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
+            #enc_data = urllib.parse.quote(data)
             img.setAttributeNS(None, 'href', data)
             
             self.svg = img 
@@ -447,15 +459,24 @@ class _Screen:
         """Adds a turtle shape to TurtleScreen's shapelist.
 
         Arguments:
-        (1) name is the name of a gif-file and shape is None.
+        (1) name is the name of an image file and shape is None.
             Installs the corresponding image shape.
-            !! CDTN: images in our implementation do actually turn to heading orientation
+            !! CDTN:
+            !! - in our implementation images do actually turn to heading orientation
+            !! - name can be a path like img/ch-archeologist-e.gif
+            !!   or even a long complete url like https://www.coderdojotrento.it/logo.jpg
+                 but be careful it will be inserted into HTML/CSS 'as is', so if it
+                 contains spaces / weird characters you may have to escape it first
+                 by calling urllib.parse.quote  
+        
         (2) name is an arbitrary string and shape is a tuple
             of pairs of coordinates. Installs the corresponding
             polygon shape
+        
         (3) name is an arbitrary string and shape is a
             (compound) Shape object. Installs the corresponding
             compound shape.
+        
         To use a shape, you have to issue the command shape(shapename).
 
         call: register_shape("turtle.gif")
@@ -468,8 +489,14 @@ class _Screen:
 
         _debug(f"CDTN: Registering shape: name: {name}   shape:{shape}")
         
+        sid = _sanitize_id(name)
+
         if name in self._shapes:
             _warn(f"Screen.register_shape(): trying to register the same shape twice: {name}   ")
+        else:
+            sids = {_sanitize_id(name) : name for name in self._shapes.keys()}
+            if sid in sids:
+                raise CDTNException(f"Trying to register image \n{sid}\nwith sanitized id\n{sid}\nbut another image\n{sids[sid]}\nalready has the same sanitized id!")
 
         defs = self.svg.getElementById("defs")
         
@@ -483,15 +510,18 @@ class _Screen:
             
         # else shape assumed to be Shape-instance
 
-
-        # TODO sanitize?
-        the_shape.svg.setAttributeNS(None, 'id', name)
+        
+        the_shape.svg.setAttributeNS(None, 'id', sid)
 
         defs.appendChild(the_shape.svg)
         self._shapes[name] =  the_shape
         
+        
     def bgpic(self, picname=None):
         """Set background image or return name of current backgroundimage.
+
+        !! CDTN: picname can be any URL, but be careful it will be put into HTML/CSS
+                 'as is' so you may have to escape it by calling urllib.parse.quote  
 
         Optional argument:
         picname -- a string, name of a gif-file or "nopic".
@@ -1280,13 +1310,14 @@ class Turtle:
         if not name in self.screen.getshapes():
             raise TurtleGraphicsError("There is no registered shape named %s" % name)
         self._shape = name
-        shape_svg_id = f'#{name}'
+        sid = _sanitize_id(name)
+        shape_svg_id = f'#{sid}'
 
         self.svg_shape.setAttribute('href', shape_svg_id)
         #use_node.setAttribute('x', 0 + self.screen._offset[0])  # setting this prevents polygon rotation from working
         #use_node.setAttribute('y', 0 + self.screen._offset[1])
         
-        shape_el = document.getElementById(name)
+        shape_el = document.getElementById(sid)
 
         if shape_el.tagName == 'polygon':
             self.svg_shape.setAttribute('fill', _CFG["fillcolor"])

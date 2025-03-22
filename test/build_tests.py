@@ -1,6 +1,7 @@
 import os
 import shutil
 import glob
+import json
 
 
 demos_paths = sorted([fpath for fpath in glob.glob("demos/*.py")]) 
@@ -78,6 +79,8 @@ shutil.copytree('css', '_build/test/css')
 shutil.copytree('img', '_build/test/img')
 
 shutil.copytree('test/css', '_build/test/css', dirs_exist_ok=True)
+shutil.copytree('test/img', '_build/test/img', dirs_exist_ok=True)
+
 
 #shutil.copytree('demos', '_build/test/', dirs_exist_ok=True)
 
@@ -112,12 +115,13 @@ for prj_name in prj_names:
 
 
 with open('pyscript.json', encoding='utf-8') as fpyscript_json:
-    sin = fpyscript_json.read()
+    
     path = '_build/test'  # no trailing slash
     with open('_build/test/pyscript.json', 'w', encoding='utf-8') as fpyscript_json_out:
-        #    sout = sin.replace('"{PATH}": "",', '"{PATH}": "'+ path + '",')
-        sout = sin
-        fpyscript_json_out.write(sout)
+        jsonobj = json.load(fpyscript_json)
+        jsonobj["packages"].append('pytest')
+        jsonobj["files"][r"{PATH}/test/uitest_api.py"] = "uitest_api.py"
+        json.dump(jsonobj,fpyscript_json_out, indent=4)
     print(f'Wrote {path}/pyscript.json')
 
 
