@@ -1,5 +1,6 @@
 _private/
 _build/
+__pycache__
 
 /test.html
 

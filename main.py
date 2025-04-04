@@ -1,99 +1,76 @@
 from turtleps import *
+from pyscript import document
 
 screen = Screen()
-screen.bgpic("img/bg-space-1.gif") 
-screen.register_shape("img/bg-space-1.gif")
-screen.register_shape("img/vh-rocket-1ut.gif")
+ispazio = "img/bg-space-1.gif"
+irazzo = "img/vh-rocket-1ut.gif"
+istella = "img/ob-energy.gif"
+
+screen.bgpic(ispazio) 
+screen.register_shape(irazzo)
+screen.register_shape(istella)
 
 await ge_init()
 
+
 rocket = Sprite()
-rocket.shape("img/vh-rocket-1ut.gif")  # rocket looks up
+rocket.shape(irazzo)  # rocket guarda in su
 rocket.pensize(5)
 rocket.pendown()
-rocket.tilt(-90)   # fix image orientation - NOTE: original Python turtle doesn't allow this for images, only for polygons!
+rocket.tilt(-90)      # aggiustiamo l'orientamento finchè l'*immagine* guardi a destra
 
-# outside main loop we can use await stuff for intro animations
-
-await rocket.say("Are you ready?", 2)  
-await rocket.say("Use arrow keys!", 2)  
-
-
-init_engine()
-
-def update():
-    # workaround for lag:  https://github.com/CoderDojoTrento/turtle-pyscript/issues/18 
-    # if you keep setting color, it creates a new svg path element, which is faster than 
-    # enlarging the current path string
-    rocket.color('yellow') 
-
-    if pressed("ArrowUp"):
-        print("ArrowUp")
-        rocket.forward(5)
-
-    if pressed("ArrowLeft"):
-        print("ArrowLeft")
-        rocket.left(6)
-
-    if pressed("ArrowRight"):
-        print("ArrowRight")
-        rocket.right(6)
-
-    set_timeout(update, ge_frame_interval * 1000)    
+stella = Sprite()
+stella.shape(istella)
+stella.goto(-130,130)
 
 
-update()
+tasti = set()
+
+def tasto_down(evento):
+    tasti.add(evento.key)
+
+def tasto_up(evento):
+    if evento.key in tasti:
+        tasti.remove(evento.key)
+
+document.onkeydown = tasto_down
+document.onkeyup   = tasto_up
+
+attesa = 0.02
+
+async def muovi_stella():
+    while True:
+        await stella.slide(-130, 110, 1)
+        await stella.slide(-130, 90, 1)
+
+async def muovi_razzo():
+
+    while True:
+        # workaround per il lag:  https://github.com/CoderDojoTrento/turtle-pyscript/issues/18 
+        rocket.color('yellow') 
+
+        if "ArrowUp" in tasti:
+            rocket.forward(4)
+        if "ArrowLeft" in tasti:
+            rocket.left(5)
+        if "ArrowRight" in tasti:
+            rocket.right(5)
+
+        await asyncio.sleep(attesa)  # ATTENZIONE all'indentazione!
+
+async def scopri():
+
+    while True:
+
+        if rocket.x < -100 and rocket.y > 100:
+            await rocket.say("Hai trovato una nuova stella!", 2) 
+        
+        await asyncio.sleep(attesa)   # ATTENZIONE all'indentazione!
 
 
-"""
-#stop_button = pydom[".cdtn-stop-button"]
+await rocket.say("Use arrow keys!", 2)
 
-#@pydom.when(stop_button, 'click')
-#def hi():
-#    alert("hi")
+asyncio.gather(muovi_stella(), 
+               muovi_razzo(),
+               scopri())
 
-def text(x, y, text: str, color):
-    ctx.font = "11px Monospace"
-    ctx.textAlign = 'left'
-    if(color == 7):
-        ctx.fillStyle = '#fff'
-
-    ctx.fillText(text, x*_scale, y*_scale)
-
-def centered_text(text: str, color):
-    if color == 7:
-        ctx.fillStyle = '#fff'
-
-    ctx.textAlign = 'center'
-    ctx.fillText(text, (canvas_width*_scale) / 2, (canvas_height*_scale) / 2)
-
-"""
-# CAN'T DO WHEN ALREADY IN AN EVENT LOOP
-"""
-asyncio.run(asyncio.gather(
-    
-    test_turtleps(),
-    test_fumetti(),
-))
-"""
-
-# this works!
-"""
-asyncio.gather(
-    
-    test_turtleps(),
-    test_fumetti(),
-)
-
-print("Fine main.py")
-"""
-
-"""
-def check_type(arg, *types):
-    for t in types:
-        if type(arg) == t:
-            return
-    raise CDTNException(f"Tipo di dato sbagliato per il valore {arg    }!\n Atteso: {types} Ottenuto: {type(arg)}")
-
-
-"""

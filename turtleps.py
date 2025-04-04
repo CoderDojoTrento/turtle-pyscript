@@ -2,14 +2,26 @@
 # ************    _NON_ SCRIVERE IN QUESTO FILE !!    ********************
 #
 
-from pyodide.ffi.wrappers import add_event_listener
+# ************             WARNING!                ******************** 
+# ************    DO _NOT_ WRITE INTO THIS FILE !!    ********************
+#
+
+
 import uuid
 import re
+from typing import Awaitable
+from pyscript import document, window
+import math
+
+#__pragma__ ('skip')
+#document = Math = setInterval = clearInterval = 0
+#__pragma__ ('noskip')
+
 
 # see https://github.com/CoderDojoTrento/turtle-pyscript/issues/8
 _running_tasks = set()
 
-def _schedule_task(awaitable):
+def _schedule_task(awaitable) -> Awaitable:
     """
     @since 0.8
     """
@@ -101,17 +113,6 @@ def _sanitize_id(name):
     ret = re.sub(r"[^\w0-9\-_]", '-', name)
     return ret
 
-from js import (
-    document,
-    window
-)
-
-
-#__pragma__ ('skip')
-#document = Math = setInterval = clearInterval = 0
-#__pragma__ ('noskip')
-
-import math
 
 _debugging = False
 #_debugging = True
@@ -146,7 +147,14 @@ _CFG = {"width" : 400, # 0.5,               # Screen
         "topbottom": None,
         "mode": "standard",          # TurtleScreen
         "colormode": 1.0,
-        "delay": 10,
+        "delay": 20,      # CDTN: original default is 10 which is quite small, leads to high frames per second  
+                          # I think it's besto to use only internally, not in the examples.
+                          #      delay (ms)    delay (s)           framerate
+                          #       10             0.01   s            100   fps
+                          #       16             0.016  s            ~60   fps
+                          #       20             0.02   s             50   fps
+                          #       32 ms          0.032  s            ~30   fps
+
         "undobuffersize": 1000,      # RawTurtle
         "shape": "classic",
         "pencolor" : "black",
@@ -323,6 +331,7 @@ class _Screen:
         self.svg_painting = _svg_painting
         self._bgpicname = ''
         self._timer = None
+        self._delay = _CFG["delay"]
 
         self._turtles = []
         self._shapes = {}
@@ -330,7 +339,7 @@ class _Screen:
         self._width = _CFG["width"]
         self._height = _CFG["height"]
         self._offset = [_CFG["width"]//2, _CFG["height"]//2]
-
+        self._pressedKeys = set()
 
         #self.canvwidth = w
         #self.canvheight = h
@@ -385,7 +394,34 @@ class _Screen:
 
         self._defaultTurtle = Turtle(screen=self)
 
-    
+    def delay(self, delay=None):
+        """ Return or set the drawing delay in integer milliseconds.
+
+        Optional argument:
+        delay -- positive integer
+
+        Example:
+        >>> screen.delay(15)
+        >>> screen.delay()
+        15
+
+        @since 0.8.0
+        """
+        if delay is None:
+            return self._delay
+        self._delay = int(delay)
+
+    def framerate(self):
+        """ !!!! CDTN NEW 
+            @since 0.9.0
+        """
+        return  int(1000 / self._delay)
+
+
+
+        
+        
+
     def getshapes(self):
         """Return a list of names of all currently available turtle shapes.
 
@@ -1452,6 +1488,9 @@ async def ge_init():
     # TODO set speed 0 ?
     await asyncio.sleep(0.5)  # TODO horror
 
+    #TODO this function probably is not needed
+
+
 class CDTNException(Exception):
     pass
 
@@ -1580,7 +1619,7 @@ class Sprite(Turtle):
         await asyncio.sleep(seconds)
         tfumetto.clear()
 
-    def say(self, text,seconds, dx=0, dy=65):
+    def say(self, text,seconds, dx=0, dy=65) -> Awaitable:
         """ Shows text in a popup withc distance dx,dy from the sprite
 
             You can optionally call this function with await
@@ -1594,7 +1633,7 @@ class Sprite(Turtle):
         """
             @since 0.8
         """
-        frames = seconds * ge_framerate
+        frames = seconds * Turtle._screen.framerate()
         sides = x - self.x, y - self.y
         delta_space = (sides[0] / frames), (sides[1] / frames)
         _debug(f"{delta_space}=")
@@ -1602,10 +1641,10 @@ class Sprite(Turtle):
         for i in range(frames):
             self.x += delta_space[0]            
             self.y += delta_space[1]
-            await asyncio.sleep(ge_frame_interval)
+            await asyncio.sleep(Turtle._screen._delay / 1000)
 
 
-    def slide(self, x, y, seconds=1):
+    def slide(self, x, y, seconds=1) -> Awaitable:
         """ Slowly moves toward a point in a given time. 
 
             You can call optionally call this function with await
@@ -1624,91 +1663,4 @@ if hasattr(screen, "colormode"):
 """
 
 
-# VERY DRAFTY EVENT LOOP STUFF
 
-import random
-#import pyscript.web.dom
-from pyscript import when, display
-from pyscript.web import page, img
-
-from js import DOMParser
-from js import (
-    document,
-    Element,
-)
-
-from pyscript import window, document
-
-from pyodide.http import open_url
-from pyodide.ffi.wrappers import set_timeout
-from pyodide.ffi.wrappers import add_event_listener
-import asyncio
-
-
-
-ctx = None
-
-ge_framerate = 60
-ge_frame_interval = (1 / ge_framerate)  # secs
-
-
-_pressedKeys = {
-}
-
-
-def _handle_input(e):
-    """ {
-     "key": "a",
-     "keyCode": 65,
-     "which": 65,
-     "code": "KeyA",
-     "location": 0,
-     "altKey": false,
-     "ctrlKey": false,
-     "metaKey": false,
-     "shiftKey": false,
-     "repeat": false
-    }
-
-    {
-     "key": "ArrowLeft",
-     "keyCode": 37,
-     "which": 37,
-     "code": "ArrowLeft",
-     "location": 0,
-     "altKey": false,
-     "ctrlKey": false,
-     "metaKey": false,
-     "shiftKey": false,
-     "repeat": false
-    }
-    """
-    global _pressedKeys
-    if e.type == "keydown":
-        _pressedKeys[e.key] = True
-    elif e.type == "keyup":
-        _pressedKeys[e.key] = False
-
-def pressed(key: str):
-    if key in _pressedKeys:
-        return _pressedKeys[key]
-    else:
-        return False
-
-
-def init_engine():
-    #TODO this function probably is not needed
-
-     #init input
-    add_event_listener(
-        document,
-        "keydown",
-        _handle_input
-    )
-
-    add_event_listener(
-        document,
-        "keyup",
-        _handle_input
-    )
-    
