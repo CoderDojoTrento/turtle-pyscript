@@ -68,7 +68,7 @@ async def scopri():
         await asyncio.sleep(attesa)   # ATTENZIONE all'indentazione!
 
 
-await rocket.say("Use arrow keys!", 2)
+await rocket.say("Usa i tasti freccia!", 2)
 
 asyncio.gather(muovi_stella(), 
                muovi_razzo(),

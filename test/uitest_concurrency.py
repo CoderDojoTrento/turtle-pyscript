@@ -5,8 +5,6 @@ import time
 import sys
 tps._info('python version: ', sys.version)
 
-import pyodide
-print("pyodide:", pyodide.__version__)
 
 #tps._debugging = False
 tps._debugging = True

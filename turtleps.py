@@ -6,29 +6,135 @@
 # ************    DO _NOT_ WRITE INTO THIS FILE !!    ********************
 #
 
-
-import uuid
 import re
-from typing import Awaitable
 from pyscript import document, window
 import math
+import asyncio
+
+
+_debugging = False
+#_debugging = True
+#_tracing = True
+_tracing = False
+
+def _debug(*args):
+    if _debugging:
+        print("DEBUG:",*args)
+
+def _trace(*args):
+    if _tracing:
+        print("TRACE:",*args)
+        
+def _info(*args):
+    print("INFO:", *args)
+
+def _warn(*args):
+    print("WARN:", *args)
+
+
+
+try:
+    from typing import Awaitable
+    from uuid import uuid4
+    _system = 'pyodide'
+except ImportError as ie:
+    try:
+        from micropython import const
+        _system = 'micropython'
+        _info("DETECTED MICROPYTHON, PUTTING SHIMS...")
+    except:
+        raise ie
+    
+    _info("- replacing uuid for micropython shim")
+    
+    import os
+    import ubinascii
+    from random import randint
+    
+    def urandom(n):
+        return bytes(randint(0, 255) for _ in range(n))
+
+
+    class UUID:
+        def __init__(self, bytes):
+            if len(bytes) != 16:
+                raise ValueError('bytes arg must be 16 bytes long')
+            self._bytes = bytes
+
+        @property
+        def hex(self):
+            return ubinascii.hexlify(self._bytes).decode()
+
+        def __str__(self):
+            h = self.hex
+            return '-'.join((h[0:8], h[8:12], h[12:16], h[16:20], h[20:32]))
+
+        def __repr__(self):
+            return "<UUID: %s>" % str(self)
+
+
+    def uuid4():
+        """Generates a random UUID compliant to RFC 4122 pg.14"""
+        random = bytearray(os.urandom(16))
+        random[6] = (random[6] & 0x0F) | 0x40
+        random[8] = (random[8] & 0x3F) | 0x80
+        return UUID(bytes=random)
+    
+
+    _info("- replacing typing.Awaitable with a shim")
+
+    # would like  from typing import Awaitable
+    # but can't use typing https://micropython-stubs.readthedocs.io/en/main/typing_mpy.html
+
+    class Awaitable:
+        pass
+    
+
+    _info("- replacing asyncio.gather with a shim")
+
+    """
+    Don't know why but cpython works without await, micropython doesn't  
+    unless you wrap the thing with a create_task
+    """
+
+    orig_gather = asyncio.gather
+
+    def turtleps_gather(*awaitables, return_exceptions=False):
+        _debug("turtleps_gather shim was called")
+        #note: no need to collect reference as micropython works differently
+        return asyncio.create_task(orig_gather(*awaitables, return_exceptions=return_exceptions))
+
+    asyncio.gather = turtleps_gather
+
+    # MICROPYTHON SHIMS END -------------------------------------------------
+
+
+
+
+
+# see https://github.com/CoderDojoTrento/turtle-pyscript/issues/8
+_running_tasks = set()
+
+def _schedule_task(awaitable):
+    """
+    @since 0.8
+    """
+    t = asyncio.create_task(awaitable)
+
+    # this is only a CPython problem, see  https://github.com/micropython/micropython/issues/12299
+    if _system != "micropython" :
+        _running_tasks.add(t)
+        t.add_done_callback(lambda t: _running_tasks.remove(t))
+    
+    return t
+
+
 
 #__pragma__ ('skip')
 #document = Math = setInterval = clearInterval = 0
 #__pragma__ ('noskip')
 
 
-# see https://github.com/CoderDojoTrento/turtle-pyscript/issues/8
-_running_tasks = set()
-
-def _schedule_task(awaitable) -> Awaitable:
-    """
-    @since 0.8
-    """
-    t = asyncio.create_task(awaitable)
-    _running_tasks.add(t)
-    t.add_done_callback(lambda t: _running_tasks.remove(t))
-    return t
 """
 Aug 2024:
 TURTLE MODULE TAKEN FROM transcrypt (apache licence)
@@ -112,26 +218,6 @@ def _sanitize_id(name):
     """
     ret = re.sub(r"[^\w0-9\-_]", '-', name)
     return ret
-
-
-_debugging = False
-#_debugging = True
-#_tracing = True
-_tracing = False
-
-def _debug(*args):
-    if _debugging:
-        print("DEBUG:",*args)
-
-def _trace(*args):
-    if _tracing:
-        print("TRACE:",*args)
-        
-def _info(*args):
-    print("INFO:", *args)
-
-def _warn(*args):
-    print("WARN:", *args)
 
 
 
@@ -994,7 +1080,7 @@ class Turtle:
         # TODO Return a stamp_id for that stamp, which can be
         # used to delete it by calling clearstamp(stamp_id).
 
-        the_id = f"stamp-{uuid.uuid4()}"
+        the_id = f"stamp-{uuid4()}"
         cloned = self.svg.cloneNode(True)
         cloned.setAttribute("id", the_id)
         self.screen.svg_painting.appendChild(cloned)

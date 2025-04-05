@@ -1,36 +1,36 @@
 from turtleps import *
 import turtleps as tps
 from pyscript import document
+import asyncio
 
 import sys
 tps._info('python version: ', sys.version)
 
-#import pyodide
-#print("pyodide:", pyodide.__version__)
 
-#tps._debugging = False
-tps._debugging = True
+tps._debugging = False
+#tps._debugging = True
 #tps._tracing = True
 tps._tracing = False
 
 # await resources
 await ge_init()
 
-
-
 # handle keys
 
 keys = set()
 
-def keydown(evento):
-    keys.add(evento.key)
+def keydown(event):
+    print("keydown", event.key)
+    keys.add(event.key)
 
 def keyup(event):
+    print("keyup", event.key)
     if event.key in keys:
         keys.remove(event.key)
 
 document.onkeydown = keydown
-document.onkeyup   = keyup
+document.onkeyup = keyup
+
 
 # do the rest
 
@@ -46,12 +46,13 @@ ada.goto(100,0)
 bob.goto(-100,0)
 
 
-async def handle_mouse(e):
-    print("event:", e)
+async def click_ada(event):
+    print("event:", event)
     await ada.say("You clicked me...!", 2)
     await ada.say("Nice job!", 2)
 
-ada.svg.onclick = handle_mouse
+# pyscript 2025.3.1 : works in cpython, doesn't  in micropython 
+ada.svg.onclick = click_ada
 
 async def update_bob():
     while True:
@@ -61,20 +62,24 @@ async def update_bob():
 wt = 0.02
 
 async def move_ada():
-    
-    while True:
-        if e.key == "ArrowRight":
-            ada.x += 3
-        if e.key == "ArrowLeft":
-            ada.x -= 3
-        if e.key == "ArrowUp":
-            ada.y -= 3
-        if e.key == "ArrowDown":
-            ada.y -= 3
 
-        await asyncio.sleep(0.02)  # REMEMBER the await!
+    while True:
+        # workaround for lag:  https://github.com/CoderDojoTrento/turtle-pyscript/issues/18 
+        ada.color('yellow') 
+
+        if "ArrowUp" in keys:
+            ada.forward(4)
+        if "ArrowLeft" in keys:
+            ada.left(5)
+        if "ArrowRight" in keys:
+            ada.right(5)
+
+        await asyncio.sleep(0.02)  
 
 ada.say("Please click me!", 1)
 
 g = asyncio.gather(update_bob(), 
                    move_ada())
+
+
+print("STOPPED main")
