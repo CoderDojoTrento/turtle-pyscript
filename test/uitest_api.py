@@ -1,6 +1,7 @@
 
 from turtleps import *
-import turtleps
+import turtleps as tps
+import pytest_asyncio
 import pytest
 
 """
@@ -30,10 +31,21 @@ def test_xy():
     assert s.x == 9
     assert s.y == 10
 
+#@pytest.mark.asyncio(loop_scope="session")
+async def test_slide():
+    s = Sprite()
+    with pytest.raises(CDTNValueError) as e_info:
+        await s.slide(5,7,-2)
+        tps._debug(e_info)
+
+    s.slide(-5,-7,0)  # equivalent to teletransport
+    assert s.x == -5
+    assert s.y == -7
+    
 
 def test_sanitize_id():
 
-    sid = turtleps._sanitize_id
+    sid = tps._sanitize_id
 
     assert sid('012') == '012'
     assert sid('a') == 'a'
@@ -68,7 +80,25 @@ def test_register_same_sanitized_id():
     screen.register_shape('c d.jpg')
     with pytest.raises(CDTNException) as e_info:
         screen.register_shape('c.d.jpg')
+        tps._debug(e_info)
+
+pytest.main(["--asyncio-mode=auto", 
+             "-W","ignore",     # crude but at least I don't see pytest-asyncio warning below 
+            "uitest_api.py"])
+ 
 
 
-pytest.main(["uitest_api.py"])
-    
+"""
+uitest_api.py::test_slide
+_io.js:15   /lib/python3.12/site-packages/pytest_asyncio/plugin.py:814: DeprecationWarning: pytest-asyncio detected an unclosed event loop when tearing down the event_loop
+_io.js:15   fixture: <pyodide.webloop.WebLoop object at 0x14e39a0>
+_io.js:15   pytest-asyncio will close the event loop for you, but future versions of the
+_io.js:15   library will no longer do so. In order to ensure compatibility with future
+_io.js:15   versions, please make sure that:
+_io.js:15       1. Any custom "event_loop" fixture properly closes the loop after yielding it
+_io.js:15       2. The scopes of your custom "event_loop" fixtures do not overlap
+_io.js:15       3. Your code does not modify the event loop in async fixtures or tests
+_io.js:15   
+_io.js:15     warnings.warn(
+"""
+ 

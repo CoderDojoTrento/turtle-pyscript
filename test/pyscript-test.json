@@ -6,5 +6,5 @@
         "{PATH}/demos/storytelling.py" : "storytelling.py"
       },
       
-    "packages": ["pytest"]
+    "packages": ["pytest", "pytest-asyncio"]
 }

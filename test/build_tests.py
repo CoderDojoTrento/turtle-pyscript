@@ -121,6 +121,7 @@ with open('pyscript.json', encoding='utf-8') as fpyscript_json:
     with open('_build/test/pyscript.json', 'w', encoding='utf-8') as fpyscript_json_out:
         jsonobj = json.load(fpyscript_json)
         jsonobj["packages"].append('pytest')
+        jsonobj["packages"].append('pytest-asyncio')
         jsonobj["files"][r"{PATH}/test/uitest_api.py"] = "uitest_api.py"
         json.dump(jsonobj,fpyscript_json_out, indent=4)
     print(f'Wrote {path}/pyscript.json')

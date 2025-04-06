@@ -1580,6 +1580,9 @@ async def ge_init():
 class CDTNException(Exception):
     pass
 
+class CDTNValueError(CDTNException):
+    pass
+
 """ Some renaming, turtle everywhere can get confusing
 """
 class Sprite(Turtle):
@@ -1717,17 +1720,27 @@ class Sprite(Turtle):
 
     async def _slide(self,x,y,seconds):
         """
+            TODO make it leave a painting trace..
+
             @since 0.8
         """
-        frames = seconds * Turtle._screen.framerate()
-        sides = x - self.x, y - self.y
-        delta_space = (sides[0] / frames), (sides[1] / frames)
-        _debug(f"{delta_space}=")
-        _debug(f"{self.x}=")
-        for i in range(frames):
-            self.x += delta_space[0]            
-            self.y += delta_space[1]
-            await asyncio.sleep(Turtle._screen._delay / 1000)
+        if seconds < 0: 
+            raise CDTNValueError(f"Seconds should be positive, found instead: {seconds}")
+        
+        if seconds == 0:
+            self.x = x
+            self.y = y
+            await asyncio.sleep(0)
+        else:
+            frames = seconds * Turtle._screen.framerate()
+            sides = x - self.x, y - self.y
+            delta_space = (sides[0] / frames), (sides[1] / frames)
+            _debug(f"{delta_space}=")
+            _debug(f"{self.x}=")
+            for i in range(frames):
+                self.x += delta_space[0]            
+                self.y += delta_space[1]
+                await asyncio.sleep(Turtle._screen._delay / 1000)
 
 
     def slide(self, x, y, seconds=1) -> Awaitable:
