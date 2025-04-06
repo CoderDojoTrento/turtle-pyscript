@@ -10,6 +10,10 @@ import re
 from pyscript import document, window
 import math
 import asyncio
+from enum import Enum
+import sys
+from js import console
+
 
 
 _debugging = False
@@ -17,21 +21,79 @@ _debugging = False
 #_tracing = True
 _tracing = False
 
-def _debug(*args):
+
+
+def _debug(*args, c=False):
     if _debugging:
-        print("DEBUG:",*args)
-
-def _trace(*args):
+        if c:
+            console.log("DEBUG:", *args)
+        else:
+            print("DEBUG:", *args)
+def _trace(*args, c=False):
     if _tracing:
-        print("TRACE:",*args)
+        if c:
+            console.log("TRACE:",*args)
+        else:
+            print("TRACE:", *args)
         
-def _info(*args):
-    print("INFO:", *args)
+def _info(*args, c=False):
+    if c:
+        console.log("INFO:", *args)
+    else:
+        print("INFO", *args)
 
-def _warn(*args):
-    print("WARN:", *args)
+
+def _warn(*args, c=False):
+    if c:
+        console.warn("WARN:", *args)
+    else:
+        print("WARN", file=sys.stderr, *args)
+
+def _error(*args, c=False):
+    """
+    @since 0.9.0
+    """
+    if c:
+        console.error("ERROR:", *args)
+    else:
+        print("ERROR:", file=sys.stderr, *args)
+    
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+class CDTNException(Exception):
+    pass
+
+class CDTNValueError(CDTNException):
+    """
+    @since 0.9.0
+    """
+    pass
+
+class CDTNRuntimeError(CDTNException):
+    """
+    @since 0.9.0
+    """
+    pass
 
 
+class Resource(Enum):
+    """
+    Simple class to model a resource status
+
+    !! CDTN NEW
+
+    @since 0.9.0
+    """    
+    TO_LOAD = 0
+    LOADED = 1
+    FAILED = 2
+
+IMG_WARNING = "img/warning.svg"
+"""
+@since 0.9.0
+"""
 
 try:
     from typing import Awaitable
@@ -287,6 +349,48 @@ _defaultElement.appendChild (_svg)
 """
 
 
+def _onload_image(event):
+    """
+    Note onload event seems fired even when file image is in cache (tried in chrome)
+
+    @since 0.9.0
+    """
+    _debug("image loaded with event:", event, c=True)
+    _debug("- event timeStamp:", event.timeStamp)
+    _debug("- image:", event.target, c=True)
+    _debug("  - image id:", event.target.getAttribute("id"))
+    _debug("  - image href:", event.target.getAttribute("href"))
+
+    shape = Screen()._shapes[event.target.getAttribute("href")]
+    _debug("  - registered shape:", shape)
+    _debug("    - shape size:", shape.get_svg_image_size())
+    shape.status = Resource.LOADED
+
+
+def _onerror_image(event):
+    """
+    @since 0.9.0
+    """
+    _debug("image loading FAILED with event:", event)
+    _debug("- event timeStamp:", event.timeStamp)
+    _debug("- image:", event.target)
+    _debug("  - image id:", event.target.getAttribute("id"))
+    _debug("  - image href:", event.target.getAttribute("href"))
+
+    shape = Screen()._shapes[event.target.getAttribute("href")]
+    _debug(f"  - registered shape: {shape}")
+    _debug(f"    - shape size: {shape.get_svg_image_size()}")
+    shape.status = Resource.FAILED
+    shape.svg.onload = None
+    shape.svg.onerror = None
+    orig_href = shape.svg.getAttribute('href') 
+    shape.svg.setAttribute('href', IMG_WARNING)
+    shape.svg.setAttribute('data-cdtn-orig-href', orig_href)
+    tooltip = document.createElementNS (_ns, 'title')
+    tooltip.textContent = f"Error loading image:\n{orig_href}"
+    shape.svg.appendChild(tooltip)
+
+
 
 class Shape(object):
     """Data structure modeling shapes.
@@ -306,6 +410,7 @@ class Shape(object):
     def __init__(self, type_, data=None):
         self._type = type_
         
+
     
         if type_ == "polygon":
             
@@ -319,7 +424,8 @@ class Shape(object):
             points_str = ' '.join([','.join([str(el) for el in t]) for t in data])
             poly.setAttributeNS(None, 'points', points_str)
             self.svg = poly
-            
+            self.status = Resource.LOADED
+
             # leaving default fill...
             
         elif type_ == "image":
@@ -335,6 +441,7 @@ class Shape(object):
             img.setAttributeNS(None, 'href', data)
             
             self.svg = img 
+            self.status = Resource.TO_LOAD
 
             #CDTN commented, expect svg node
             #if isinstance(data, str):
@@ -346,6 +453,7 @@ class Shape(object):
         elif type_ == "compound":
             #data = []  CDTN
             self.svg = document.createElementNS(_ns, 'g')   # group
+            self.status = Resource.LOADED
         else:
             raise TurtleGraphicsError("There is no shape type %s" % type_)
         
@@ -354,8 +462,8 @@ class Shape(object):
         """
         if self._type != "image":
             raise CDTNException("Other types are currently not supported")
-        _debug(f"{window.getComputedStyle(self.svg).getPropertyValue('width')=}")   # '50.3px'
-        _debug(f"{window.getComputedStyle(self.svg).getPropertyValue('height')=}")  # '50.5px'
+        _trace(f"{window.getComputedStyle(self.svg).getPropertyValue('width')=}")   # '50.3px'
+        _trace(f"{window.getComputedStyle(self.svg).getPropertyValue('height')=}")  # '50.5px'
         cs = window.getComputedStyle(self.svg)
         return(float(cs.getPropertyValue('width')[:-2]), float(cs.getPropertyValue('height')[:-2]))
 
@@ -451,6 +559,9 @@ class _Screen:
                   "classic": Shape("polygon", ((0,0),(-5,-9),(0,-7),(5,-9))),
                    #CDTN not supported "blank" : Shape("image", self._blankimage())
                   }
+        
+        
+        
         for name, shape in shapes.items():
             self.register_shape(name, shape)
 
@@ -608,7 +719,11 @@ class _Screen:
             compound shape.
         
         To use a shape, you have to issue the command shape(shapename).
-
+        !! CDTN: if the shape is an image, before calling shape command 
+                 you will need to call:     await ge_init()
+                 our implementation starts fetching the image as soon 
+                 as it is registered
+                 
         call: register_shape("turtle.gif")
         --or: register_shape("tri", ((0,0), (10,10), (-10,10)))
 
@@ -626,12 +741,17 @@ class _Screen:
         else:
             sids = {_sanitize_id(name) : name for name in self._shapes.keys()}
             if sid in sids:
-                raise CDTNException(f"Trying to register image \n{sid}\nwith sanitized id\n{sid}\nbut another image\n{sids[sid]}\nalready has the same sanitized id!")
+                raise CDTNException(f"Tried to register image \n{sid}\nwith sanitized id\n{sid}\nbut another image\n{sids[sid]}\nalready has the same sanitized id!")
 
         defs = self.svg.getElementById("defs")
         
+
+
         if shape is None:
             the_shape = Shape("image", name)
+
+            if _ge_loaded == True:
+                raise CDTNRuntimeError(f"Tried calling register_shape() after game engine initialization!\nMove image registration *before* the call to   await ge_init()\nImage was {name}")
 
         elif isinstance(shape, tuple):
             the_shape = Shape("polygon", shape)
@@ -644,7 +764,20 @@ class _Screen:
         the_shape.svg.setAttributeNS(None, 'id', sid)
 
         defs.appendChild(the_shape.svg)
+
+        if the_shape._type == "image":
+           
+            #shape_node = document.getElementById(sid)
+            _debug(f"the shape_node after defs.appendChild is supposed to be: {the_shape.svg}")
+
+            #pyscript 2025.3.1: this gives weird borrowed function errors in pyodide
+            #the_shape.svg.addEventListener("load", _on_load_image)
+            
+            the_shape.svg.onload = _onload_image
+            the_shape.svg.onerror = _onerror_image
+
         self._shapes[name] =  the_shape
+        
         
         
     def bgpic(self, picname=None):
@@ -1439,16 +1572,22 @@ class Turtle:
         _debug(f"Setting turtle shape to {name}")
         if not name in self.screen.getshapes():
             raise TurtleGraphicsError("There is no registered shape named %s" % name)
-        self._shape = name
-        sid = _sanitize_id(name)
-        shape_svg_id = f'#{sid}'
+                
 
+        self._shape = name
+        sid = _sanitize_id(name)        
+        shape_el = document.getElementById(sid)
+
+        if shape_el.tagName == 'image':
+            if _ge_loaded == False:
+                raise CDTNRuntimeError(f"Tried calling Sprite.shape() with an image but game engine is not initialized yet!\nFirst you have to call  await ge_init()\n  Image name was {name}.")
+        
+        shape_svg_id = f'#{sid}'
         self.svg_shape.setAttribute('href', shape_svg_id)
         #use_node.setAttribute('x', 0 + self.screen._offset[0])  # setting this prevents polygon rotation from working
         #use_node.setAttribute('y', 0 + self.screen._offset[1])
         
-        shape_el = document.getElementById(sid)
-
+        
         if shape_el.tagName == 'polygon':
             self.svg_shape.setAttribute('fill', _CFG["fillcolor"])
             self.svg_shape.setAttribute('stroke', _CFG["pencolor"])
@@ -1557,31 +1696,73 @@ def setDefaultElement(element):
 
 Coderdojo Trento Game Engine
 
-Very minimal game engine which adds some convenience on top of turtleps
+Minimal game engine which adds some convenience on top of turtleps
 Stuff is added only as functions on purpose, to avoid class stuff.
 
 Eventually, what follows will go into a separate file
 """
 
+_ge_loaded = False
 
-#from turtleps import *
-import asyncio
+def _ge_play():
+    global _ge_loaded
+    """
+    @since 0.9.0
+    """
+    #TODO SHOULD PROPERLY STOP FIRST WITH _ge_stop()
+    _ge_loaded = False
 
+    _warn("_ge_play: TODO ONLY A STUB")
+
+
+def _ge_stop():
+    global _ge_loaded
+    """
+    @since 0.9.0
+    """
+    _ge_loaded = False
+    _warn("_ge_stop: TODO ONLY A STUB")
+
+    
 async def ge_init():
     """ Waits until all images and resources are loaded
     """
-    hideturtle()  # dont need it in most games..
-    # TODO set speed 0 ?
-    await asyncio.sleep(0.5)  # TODO horror
+    global _ge_loaded
 
-    #TODO this function probably is not needed
+    _info("Initializing game engine..")
 
+    if _ge_loaded:
+        raise CDTNRuntimeError("Tried to initialize game engine twice!")
 
-class CDTNException(Exception):
-    pass
+    loading = document.getElementById('loading');
 
-class CDTNValueError(CDTNException):
-    pass
+    loading.showModal();
+
+    hideturtle()  # dont need it in most games..    
+
+    # some async polling, maybe there are better ways
+
+    need_loading = True
+    while need_loading:
+        _debug("Not yet loaded, reattempting..")
+        need_loading = False
+        for sname, shape in Turtle._screen._shapes.items():
+            if shape.status == Resource.TO_LOAD:
+                need_loading = True
+                break
+        await asyncio.sleep(0.1)
+
+    _ge_loaded = True
+
+    loading.close();
+
+    failed = [shape.svg.getAttribute("data-cdtn-orig-href") for sname, shape in Turtle._screen._shapes.items() if shape.status == Resource.FAILED]
+    _info("- Done loading all resources!")
+    if failed:
+        _error("These shapes failed loading:")
+        for fail in failed:
+            _error(fail)
+
 
 """ Some renaming, turtle everywhere can get confusing
 """
@@ -1600,13 +1781,6 @@ class Sprite(Turtle):
     def show(self):
         self.showturtle()
 
-
-    def _load_image(self, image):
-        """ Experimental, should be awaitable, don't use it...
-        """
-        screen = Screen()
-        screen.register_shape(image)
-        self.shape(image)
 
     @property
     def x(self):

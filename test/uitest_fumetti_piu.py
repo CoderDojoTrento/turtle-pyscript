@@ -7,11 +7,19 @@ tps._debugging = True
 tps._tracing = False
 
 tps._info("TEST FUMETTI: BEGINNING...")
+
+iarch = 'img/ch-archeologist-e.gif'
+
+screen = Screen()
+screen.register_shape(iarch)
+
+await ge_init()
+
 t = Sprite()
 t.speed(10)
 
 
-t._load_image('img/ch-archeologist-e.gif')
+t.shape(iarch)
 
 await t.say("abcdefghilmnopqrstuvzABCDEFGHILMNOPQRSTUVZ",2)
 await t.say("Più in alto",2, dy = 120)

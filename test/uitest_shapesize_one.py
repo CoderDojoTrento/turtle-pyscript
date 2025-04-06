@@ -10,7 +10,10 @@ tps._tracing = False
 arc = 'img/ch-archeologist-e.gif'
 screen = Screen()
 screen.register_shape(arc)
-#hideturtle()
+await ge_init()
+
+
+showturtle()
 shape(arc)
 color('green')
 dot(5)

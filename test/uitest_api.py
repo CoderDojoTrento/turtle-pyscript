@@ -80,7 +80,47 @@ def test_register_same_sanitized_id():
     screen.register_shape('c d.jpg')
     with pytest.raises(CDTNException) as e_info:
         screen.register_shape('c.d.jpg')
-        tps._debug(e_info)
+    tps._debug(e_info)
+
+
+async def test_double_init():
+    """@since 0.9.0
+    """
+    tps._ge_play()
+    
+    await ge_init()
+
+    with pytest.raises(CDTNRuntimeError) as e_info:
+        await ge_init()
+    tps._debug(e_info)
+
+
+
+async def test_register_after_init():
+    """@since 0.9.0
+    """
+    tps._ge_play()
+
+    screen = Screen()    
+    screen.register_shape('ab.jpg')
+    await ge_init()
+    with pytest.raises(CDTNRuntimeError) as e_info:
+        screen.register_shape('cd.jpg')
+    tps._debug(e_info)
+
+
+def test_shape_image_ge_not_inited():
+    """@since 0.9.0
+    """
+    tps._ge_play()
+
+    screen = Screen()    
+    screen.register_shape('ab.jpg')
+    ada = Sprite()
+    with pytest.raises(CDTNRuntimeError) as e_info:
+        ada.shape('ab.jpg')
+    tps._debug(e_info)
+
 
 pytest.main(["--asyncio-mode=auto", 
              "-W","ignore",     # crude but at least I don't see pytest-asyncio warning below 

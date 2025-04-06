@@ -6,30 +6,16 @@ tps._debugging = True
 #tps._tracing = True
 tps._tracing = False
 
-""" already in turtleps
-def _debug(*args):
-    if _debugging:
-        print("DEBUG:",*args)
-
-def _trace(*args):
-    if _tracing:
-        print("TRACE:",*args)
-        
-def _info(*args):
-    print("INFO:", *args)
-
-def _warn(*args):
-    print("WARN:", *args)
-"""
 
 tps._info("TEST TURTLEPS: BEGINNING...")
 
 ada = Sprite()
 
 ada.screen.register_shape('img/turtle.svg')
-ada.shape('img/turtle.svg')
 
-#await asyncio.sleep(1)
+await ge_init()
+
+ada.shape('img/turtle.svg')
 
 print("shapesize:", ada.shapesize())
 #for i in range(3):

@@ -9,6 +9,8 @@ tps._tracing = False
 screen = Screen()
 screen.register_shape('img/turtle.svg')
 
+await ge_init()
+
 ada = Turtle()
 bob = Turtle()
 

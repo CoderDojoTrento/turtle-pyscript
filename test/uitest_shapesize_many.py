@@ -12,8 +12,7 @@ screen = Screen()
 screen.register_shape(arc)
 screen.register_shape(tsvg)
 
-# TODO make proper wait https://github.com/CoderDojoTrento/turtle-pyscript/issues/8
-await asyncio.sleep(0.3)
+await ge_init()
 
 a = Turtle(shape=arc)
 a.up()

@@ -7,9 +7,18 @@ tps._debugging = True
 tps._tracing = False
 
 tps._info("TEST FUMETTI CIAO: BEGINNING...")
+
+iarch = 'img/ch-archeologist-e.gif'
+
+screen = Screen()
+screen.register_shape(iarch)
+
+await ge_init()
+
+
 t = Sprite()
 t.speed(10)
-t._load_image('img/ch-archeologist-e.gif')
+t.shape(iarch)
 
 await t.say("Ciao1", 1)
 t.goto(-250, 0)
