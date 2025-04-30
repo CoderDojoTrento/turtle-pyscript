@@ -62,6 +62,11 @@ nav {
     min-width:100%;
 }
 
+.tps-menu-header {
+    margin-left:30px;
+    color:white;
+}
+
 .cdtn-game-ctrl {
     color:white;
     margin-left:50%;
@@ -70,3 +75,8 @@ nav {
 .cdtn-stop {
     margin-left: 20px;
 }
+
+#loading { outline: none; 
+           border: none; 
+           background: transparent;     
+           margin-top:25% }

@@ -13,6 +13,8 @@ import asyncio
 from enum import Enum
 import sys
 from js import console
+import js
+from pyscript.js_modules import turtleps as tpsjs
 
 
 
@@ -324,8 +326,12 @@ _svg.style.setProperty('border-style','solid')
 _svg.style.setProperty('border-color','lightgrey')
 
 
+_silhouettes = document.createElementNS(_ns, 'g')
+_silhouettes.setAttribute('class', 'tps-silhouettes')
+
 _defs = document.createElementNS (_ns, 'defs')
 _defs.setAttributeNS(None, 'id', 'defs')
+_defs.appendChild(_silhouettes)
 _svg.appendChild(_defs)
 
 # so we can at least define z-order of turtles
@@ -339,8 +345,7 @@ _svg.appendChild(_svg_painting)
 _svg.appendChild(_svg_sprites)
 
 
-
-_defaultElement = document.getElementById ('__turtlegraph__')
+_defaultElement = document.getElementById ('tps-game-area')
 if not _defaultElement:
     _defaultElement = document.body
 
@@ -355,16 +360,49 @@ def _onload_image(event):
 
     @since 0.9.0
     """
+    img = event.target
+
     _debug("image loaded with event:", event, c=True)
     _debug("- event timeStamp:", event.timeStamp)
-    _debug("- image:", event.target, c=True)
-    _debug("  - image id:", event.target.getAttribute("id"))
-    _debug("  - image href:", event.target.getAttribute("href"))
+    url = img.getAttribute("href")
 
-    shape = Screen()._shapes[event.target.getAttribute("href")]
+    img_id = img.getAttribute("id")
+
+    _debug("- image:", img, c=True)
+    _debug("  - image id:", img_id)
+    _debug("  - image href:", url)
+
+    shape = Screen()._shapes[url]
+    shape_size = shape.get_svg_image_size()
     _debug("  - registered shape:", shape)
-    _debug("    - shape size:", shape.get_svg_image_size())
+    _debug("    - shape size:", shape_size )
     shape.status = Resource.LOADED
+    create_clip(img)
+
+
+
+def create_clip(img):
+    """
+    @since 0.9.0
+    """
+    img_id = img.getAttribute("id")
+    clip_id = f"tps-clip-{img_id}"
+    clip_path = document.createElementNS(_ns, 'clipPath')
+    clip_path.setAttribute('clip-rule', "evenodd")    # TODO don't know what this is
+    clip_path.setAttribute('id', clip_id)
+    Screen()._clip_paths.appendChild(clip_path)
+    img.setAttribute('clip-path', f"url(#{clip_id})")
+    
+    def img_loaded(e):
+
+        work_canvas = tpsjs.vectorize(e.target, clip_path)
+        _debug("  - vectorized shape:", shape)
+        _debug("Vectorized canvas:", work_canvas, c=True)
+
+    
+    work_img = js.Image.new()
+    work_img.src = img.getAttribute('href')
+    work_img.onload = img_loaded        
 
 
 def _onerror_image(event):
@@ -389,7 +427,7 @@ def _onerror_image(event):
     tooltip = document.createElementNS (_ns, 'title')
     tooltip.textContent = f"Error loading image:\n{orig_href}"
     shape.svg.appendChild(tooltip)
-
+    create_clip(shape.svg)
 
 
 class Shape(object):
@@ -462,17 +500,7 @@ class Shape(object):
         """
         if self._type != "image":
             raise CDTNException("Other types are currently not supported")
-        _trace(f"{window.getComputedStyle(self.svg).getPropertyValue('width')=}")   # '50.3px'
-        _trace(f"{window.getComputedStyle(self.svg).getPropertyValue('height')=}")  # '50.5px'
-        cs = window.getComputedStyle(self.svg)
-        return(float(cs.getPropertyValue('width')[:-2]), float(cs.getPropertyValue('height')[:-2]))
-
-        #_debug(f"{self.svg_shape.getBBox()=}")
-        #_debug(f"{self.svg_shape.getBBox()["width"]=}")  # wtf  TypeError: 'pyodide.ffi.JsProxy' object is not subscriptable
-        #_debug(f"{self.svg_shape.getBBox()[2]=}")                     # no
-        #_debug(f'{self.svg_shape.getBBox().getProperty("width")=}')   # no
-        #_debug(f'{self.svg_shape.getBBox().getAttribute("width")=}')  # no
-        
+        return (self.svg.getBBox().width,self.svg.getBBox().height )        
 
 
     def addcomponent(self, poly, fill, outline=None):
@@ -521,6 +549,7 @@ class _Screen:
     def __init__(self):
         _debug("CDTN: Initializing screen...")
         self.svg = _svg
+        self._clip_paths = _silhouettes
         self.svg_sprites = _svg_sprites
         self.svg_painting = _svg_painting
         self._bgpicname = ''

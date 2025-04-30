@@ -1,0 +1,37 @@
+{
+    "files": {
+        "turtleps.py": "",
+        "demo/storytelling.py": "",
+        "test/tps_testing.py": "",
+        "test/uitest_api.py": "",
+        "test/uitest_bad_filenames.py": "",
+        "test/uitest_big_star.py": "",
+        "test/uitest_click.py": "",
+        "test/uitest_colors.py": "",
+        "test/uitest_concurrency.py": "",
+        "test/uitest_event_loop.py": "",
+        "test/uitest_fumetti_ciao.py": "",
+        "test/uitest_fumetti_piu.py": "",
+        "test/uitest_ge_init.py": "",
+        "test/uitest_lag.py": "",
+        "test/uitest_layers.py": "",
+        "test/uitest_quadrato_pieno.py": "",
+        "test/uitest_shapesize_many.py": "",
+        "test/uitest_shapesize_one.py": "",
+        "test/uitest_stamp.py": "",
+        "test/uitest_text.py": "",
+        "test/uitest_tilt.py": "",
+        "test/uitest_turtleps.py": ""
+    },
+    "js_modules": {
+        "main": {
+            "https://cdn.skypack.dev/canvg@^4.0.3": "Canvg",
+            "js/imagetracer_v1.2.6.min.js": "imagetracer",
+            "js/turtleps.js": "turtleps"
+        }
+    },
+    "packages": [
+        "pytest",
+        "pytest-asyncio"
+    ]
+}

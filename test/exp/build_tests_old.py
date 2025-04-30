@@ -1,3 +1,14 @@
+
+"""
+
+
+TODO OLD CODE
+
+
+"""
+
+
+
 import os
 import shutil
 import glob
@@ -55,7 +66,7 @@ all_tests_index = f"""
         </dialog>
         <h1><a href="https://github.com/CoderDojoTrento/turtle-pyscript" target="_blank">Turtle Pyscript</a> tests, by <a href="https://www.coderdojotrento.it" target="_blank">CoderDojoTrento</a></h1>
         <h2>It may take sometime to load everything ...</h2>
-        <div id="tpt-previews">
+        <div id="tps-test-previews">
         {iframes}
         </div>
     </body>

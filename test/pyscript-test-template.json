@@ -1,0 +1,17 @@
+{   
+    
+    "files": {
+        "turtleps.py" : "",
+        "demo/storytelling.py" : "",
+        "test/tps_testing.py" : ""
+      },
+    "js_modules": {
+      "main": {
+        "https://cdn.skypack.dev/canvg@^4.0.3" : "Canvg",
+        "js/imagetracer_v1.2.6.min.js" : "imagetracer",
+        "js/turtleps.js": "turtleps" 
+      }
+    },
+    "packages": ["pytest", "pytest-asyncio"]
+
+}

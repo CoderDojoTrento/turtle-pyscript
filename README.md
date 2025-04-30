@@ -9,14 +9,12 @@ in a real CPython environment.
 
 **STATUS: BETA**
 
-**SPACE EXPLORER DEMO**: https://coderdojotrento.github.io/turtle-pyscript/main.html
+**SPACE EXPLORER DEMO**: https://coderdojotrento.github.io/turtle-pyscript/demo.html?s=demo/space_rocket.py
 
-**STORYTELLING DEMO**: https://coderdojotrento.github.io/turtle-pyscript/storytelling.html
+**STORYTELLING DEMO**: https://coderdojotrento.github.io/turtle-pyscript/demo.html?s=demo/storytelling.py
 
-**ALL TESTS**: https://coderdojotrento.github.io/turtle-pyscript/index.html
+**ALL TESTS**: https://coderdojotrento.github.io/turtle-pyscript/test.html?s=test/uitests_all.py
 
-
-**EXAMPLES**: see [tests.py](tests.py)
 
 **Turtle API:** We try to be faithful to original api as much as we can. Currently we support most important things and it should work. Tested successfully in a high school classroom. 
 
