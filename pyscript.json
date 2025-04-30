@@ -1,7 +1,6 @@
 {
     "files": {
-        "{PATH}": "",
-        "{PATH}/turtleps.py" : "turtleps.py"
+        "turtleps.py" : ""
     },
     "js_modules": {
         "main": {
