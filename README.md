@@ -29,57 +29,36 @@ Most noticeable problems:
 
 ## Deploy
 
-1.  Pyscript needs a way to find your python files: If you deploy to a server with a subpath you have to set PATH [template](https://docs.pyscript.net/2024.8.2/user-guide/configuration/#files) accordingly in [pyscript.json](pyscript.json)
+1. Copy all the files in any web server
 
-For example, normally the `PATH` would be just `/` but in the demo https://coderdojotrento.github.io/turtle-pyscript/  
-
-the `PATH` must be set to  `/turtle-pyscript`
-
-2. serve the website with any static http**s** (mind the s) webserver
-
-3. open `index.html` with the browser!
+2. Open `index.html` with the browser!
 
 
 ## Develop
 
-If you run any http**s** server (mind the s) and open `index.html` you should be able to see something actually drawn by turtle.
+If you run any http server and open `index.html` you should be able to see something actually drawn by turtle.
 
-You need http**S** because currently there is a Pyscript component (`sabayon`) which insists on calling `crypto.randomUUID()` 
-which can only be executed in an http**s** environment
-
-So to easily setup a test http**s** server run these scripts: 
-
-1. Create `test/server.pem` file
-
-```bash
-openssl req -new -x509 -keyout test/server.pem -out test/server.pem -days 365 -nodes
-```
-
-2. Run the server:
+1. Run any http server, like python default one:
 
 ```python
-python3 test/server.py
+python3 -m http.server -b 127.0.0.1 8000
 ```
 
-3. Open browser to this link: 
+2. Open browser to this link: 
 
-https://127.0.0.1:8008/
-
-It will warn you the certificate is not signed, just click proceed.
-
-
-**NOTE**: DON'T run this test server in production, you don't need it and it would also be unsafe.
+http://localhost:8000/
 
 ### Test
 
-Since all tests are ui related, for now I'm using a gitignored `test.html` in root folder
+Test page is in [test.html](test.html). You can load most tests by passing an `s` parameter like:
 
-To make all tests in `build/test`:
-
-```bash
-python3 test/build_tests.py 
+```
+http://localhost:8000/test.html?s=test/uitest_click.py
 ```
 
+Tests starting with `uitests_` are meant to be test suites.
+
+Note: since the browser can't know which python files are on the server for security reasons, in some cases you have to explicitly write them in the pyscript config. For example, to build [pyscript-test.json](pyscript-test.json) we wrote a litte utility [test/build_test_config.py](test/build_test_config.py) that takes the template in [test/pyscript-test-template.json](test/pyscript-test-template.json) and fills it with the test file names.
 
 ## Technical stuff
 
@@ -98,10 +77,10 @@ As graphical display we use a native `<svg>` element in the browser. This has th
 - if they want, students can get to learn svg also
 - can be styled with css, another occasion to learn stuff
 
-
 Typically for videogames you would choose `<canvas>`, as svg is slower for videogames but 
 since this lib is thought for educational purposes we think svg is sufficient.
 
+As a downside, sometimes svg spec is not fully implemented by browsers, in particular when loading other images into an existing svg you may get weird behaviour, like Chrome not respecting transparency when clicking, in such cases we implement workarounds.
 
 ### Developer notes
 

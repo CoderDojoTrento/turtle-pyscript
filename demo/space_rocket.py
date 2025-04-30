@@ -74,5 +74,3 @@ asyncio.gather(muovi_stella(),
                muovi_razzo(),
                scopri())
 
-print("ZIOPERO")
-
