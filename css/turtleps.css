@@ -26,16 +26,9 @@ html {
         "Segoe UI Symbol",
         "Noto Color Emoji";
     line-height: 1.5;
+    
 }
 
-
-nav {
-    position: sticky;
-    width: 100%;
-    top: 0;
-    left: 0;
-    z-index: 9999;
-}
 
 .logo {
     padding-right: 10px;
@@ -44,7 +37,8 @@ nav {
     max-width: inherit;
 }
 
-.title {
+.tps-title {
+    color: #f0ab3c;
     text-decoration: none;
     text-decoration-line: none;
     text-decoration-style: initial;
@@ -53,30 +47,172 @@ nav {
     font-size: 1.5em;
     line-height: 2em;
     white-space: nowrap;
+    
 }
 
-.app-header {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    min-width:100%;
+#tps-navbar {
+   background-color: #000000;
+   display:flex;
+   justify-content: center;
+}
+
+.tps-app-header {
+    display:flex;
+    justify-content: center;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    min-width: 60%;
+    align-items:center;
 }
 
 .tps-menu-header {
-    margin-left:30px;
+    margin-left:40px;
+    margin-right:5px;
     color:white;
 }
 
-.cdtn-game-ctrl {
-    color:white;
-    margin-left:50%;
+.tps-menu-bar {
+    display:flex;
+    justify-content: flex-end;
+    max-width: 100%;
+    margin-right:5%;
+    margin-left:3%;
 }
 
-.cdtn-stop {
-    margin-left: 20px;
+.tps-game-box {
+    display: flex;
+    justify-content: center;
+    flex-direction: column; 
+    position:relative;
+    min-width:400px;
+    min-height:50px;
+
 }
 
-#loading { outline: none; 
-           border: none; 
-           background: transparent;     
-           margin-top:25% }
+#tps-game-area {
+    display: flex;
+    justify-content: center;
+    align-items:center;    
+    margin-top:10%;
+}
+
+.tps-game-area-sticky {
+    margin-top:0% !important;    
+    justify-content: flex-end !important;
+    min-width:100%;
+}
+
+
+.tps-game-area-sticky .tps-game-ctrl-panel {
+    border-style:solid;   
+    padding-top:2%;
+    border-radius:5px;
+    border-color:lightgrey;
+    min-width:100%;
+}
+
+.tps-game-area-sticky .tps-game-box {
+    min-width:100%;
+}
+
+
+.tps-game-ctrl-panel {
+    color:black;
+    display: flex;
+    justify-content: flex-end;
+    margin-right:11px;
+    margin-bottom:-7px;
+}
+
+.tps-game-ctrl {
+    margin-left: 10px;
+    user-select: none;
+}
+
+.tps-ctrl-pressed {
+    border-style:inset;
+}
+
+
+.tps-play img {
+    /* border-style:inset; */
+}
+
+.tps-stop img {
+        /* border-style:inset; */
+}
+
+.tps-reload img {
+        /* border-style:inset; */
+}
+
+
+.tps-loading { 
+    position: absolute;
+    top: -3%;
+    left: -3%;
+    min-width: 106%;
+    min-height: 106%;    
+ /*   background: #0000; /*radial-gradient(circle,rgba(255, 255, 255, 0.2) 0%, rgba(138, 138, 138, 0.1) 80%);*/
+    user-select: none; 
+    border-radius:10px;
+    display:flex;
+    justify-content:center;
+    align-items: center;
+}
+
+.tps-loading-message {
+    
+    position:absolute;
+    top:0.8rem;
+    left:2rem;
+    font-size:1.5rem;
+    font-weight:900
+}
+
+@keyframes tps-spin { 
+    100% { 
+        transform:rotate(360deg); 
+    } 
+}
+
+.tps-loading img {
+    animation-name: tps-spin;
+    animation-duration: 5s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    margin-right:15px;
+}
+
+.tps-screen {
+    border-style : solid;
+    border-color : #ddd;
+    border-width : 3px;
+}
+
+.tps-screen-container {
+    border-style : solid;
+    border-color : #ddd0;
+    border-width : 10px;
+    min-width: 404px;
+    min-height: 404px;
+}
+
+.tps-screen-container-stopped {
+    border-width : 10px;
+    border-image: radial-gradient( 
+      #aaa, 
+      rgba(0, 0, 0, 0)
+    ) 1 ;
+    border-color : #999f;
+    border-radius:10px;}
+
+.tps-screen-container-loading {
+    border-width : 10px;
+    border-image: radial-gradient( 
+      #aaa, 
+      rgba(0, 0, 0, 0)
+    ) 1 ;
+    border-color : #999f;
+    border-radius:10px;
+}

@@ -22,6 +22,8 @@ body {
     width:100%;
     margin-right:0 !important;
     margin-left:0 !important;
+    padding-left:0.8rem;
+    padding-right:0.8rem;
     padding-top:20px !important;
     padding-bottom:20px !important;
      
@@ -30,13 +32,12 @@ body {
 }
 
 
-.tps-test-previews  {
+#tps-test-area  {
     display: flex;
     flex-wrap: wrap;
 }
 
 .tps-test-preview {
-    /*background-color: red;*/
     display: flex;
     flex-direction: column;
     

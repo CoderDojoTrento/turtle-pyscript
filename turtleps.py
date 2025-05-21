@@ -1,19 +1,27 @@
-# ************             ATTENZIONE!                ******************** 
-# ************    _NON_ SCRIVERE IN QUESTO FILE !!    ********************
-#
-
 # ************             WARNING!                ******************** 
 # ************    DO _NOT_ WRITE INTO THIS FILE !!    ********************
 #
 
+# ************             ATTENZIONE!                ******************** 
+# ************    _NON_ SCRIVERE IN QUESTO FILE !!    ********************
+#
+
+print("TPS: Loading turtleps.py")
+
+
 import re
-from pyscript import document, window
 import math
 import asyncio
-from enum import Enum
 import sys
-from js import console
+import importlib
+import os
+from enum import Enum
+from urllib.parse import urlparse
+
 import js
+from js import console
+import pyscript
+from pyscript import document, window
 from pyscript.js_modules import turtleps as tpsjs
 
 
@@ -28,28 +36,28 @@ _tracing = False
 def _debug(*args, c=False):
     if _debugging:
         if c:
-            console.log("DEBUG:", *args)
+            console.log("TPS DEBUG:", *args)
         else:
-            print("DEBUG:", *args)
+            print("TPS DEBUG:", *args)
 def _trace(*args, c=False):
     if _tracing:
         if c:
-            console.log("TRACE:",*args)
+            console.log("TPS TRACE:",*args)
         else:
             print("TRACE:", *args)
         
 def _info(*args, c=False):
     if c:
-        console.log("INFO:", *args)
+        console.log("TPS INFO:", *args)
     else:
-        print("INFO", *args)
+        print("TPS INFO", *args)
 
 
 def _warn(*args, c=False):
     if c:
-        console.warn("WARN:", *args)
+        console.warn("TPS WARN:", *args)
     else:
-        print("WARN", file=sys.stderr, *args)
+        print("TPS WARN", file=sys.stderr, *args)
 
 def _error(*args, c=False):
     """
@@ -59,7 +67,8 @@ def _error(*args, c=False):
         console.error("ERROR:", *args)
     else:
         print("ERROR:", file=sys.stderr, *args)
-    
+
+
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -79,6 +88,26 @@ class CDTNRuntimeError(CDTNException):
     """
     pass
 
+_info("- all tasks:")
+for t in asyncio.all_tasks():
+    c = t.get_coro()
+    _info("  Coroutine:", c.__name__ if c else 'None')
+    _info(" ", t)
+
+def exception_handler(loop, context):
+    """
+    To prevent stop related errors 
+    @since 0.10.0
+    """
+    exception = context['exception']
+    message = context['message']
+    tps._info(f'TPS EXCEPTION HANDLER: Task failed, msg={message}, exception={exception}')
+
+_loop = asyncio.get_running_loop()
+# set the exception handler
+_loop.set_exception_handler(exception_handler)
+
+
 
 class Resource(Enum):
     """
@@ -92,6 +121,24 @@ class Resource(Enum):
     LOADED = 1
     FAILED = 2
 
+class GameStatus(Enum):
+    """ 
+        PLAYING is normal status, simply means turtleps module is loaded
+    
+        STOPPED is intended as 'panic mode':
+        - asyncio tasks are shut down
+            - what about main.py? 
+        - Sounds are interrupted
+        - Sprites still show for inspection
+        - mouse and keys are unregistered
+
+        PAUSED is not yet implemented   apparently pausing pyodide is complicated 
+
+    """
+
+    PLAY = 0,
+    STOP = 1
+    
 IMG_WARNING = "img/warning.svg"
 """
 @since 0.9.0
@@ -174,8 +221,6 @@ except ImportError as ie:
 
 
 
-
-
 # see https://github.com/CoderDojoTrento/turtle-pyscript/issues/8
 _running_tasks = set()
 
@@ -186,9 +231,13 @@ def _schedule_task(awaitable):
     t = asyncio.create_task(awaitable)
 
     # this is only a CPython problem, see  https://github.com/micropython/micropython/issues/12299
+    def clean_task(t):
+        if t in _running_tasks:
+            _running_tasks.remove(t)
+            
     if _system != "micropython" :
         _running_tasks.add(t)
-        t.add_done_callback(lambda t: _running_tasks.remove(t))
+        t.add_done_callback(clean_task) # consider stop
     
     return t
 
@@ -321,9 +370,7 @@ _CFG = {"width" : 400, # 0.5,               # Screen
 
 _ns = 'http://www.w3.org/2000/svg'
 _svg = document.createElementNS (_ns, 'svg')
-
-_svg.style.setProperty('border-style','solid')
-_svg.style.setProperty('border-color','lightgrey')
+_svg.setAttribute("class",  "tps-screen")
 
 
 _silhouettes = document.createElementNS(_ns, 'g')
@@ -345,16 +392,17 @@ _svg.appendChild(_svg_painting)
 _svg.appendChild(_svg_sprites)
 
 
-_defaultElement = document.getElementById ('tps-game-area')
+_defaultElement = document.querySelector('#tps-game-box .tps-screen-container');
 if not _defaultElement:
     _defaultElement = document.body
 
+_info("Adding svg", _svg, "to", _defaultElement, c=True)
 _defaultElement.appendChild (_svg)
 """ CDTN: The _svg container
 """
 
 
-def _onload_image(event):
+def _onload_image(shape, event):
     """
     Note onload event seems fired even when file image is in cache (tried in chrome)
 
@@ -372,14 +420,32 @@ def _onload_image(event):
     _debug("  - image id:", img_id)
     _debug("  - image href:", url)
 
-    shape = Screen()._shapes[url]
     shape_size = shape.get_svg_image_size()
     _debug("  - registered shape:", shape)
     _debug("    - shape size:", shape_size )
     shape.status = Resource.LOADED
     create_clip(img)
 
-
+def _version_url(url, v):
+    """
+    @since 0.10.0
+    """
+    
+    #urlparse("scheme://netloc/path;parameters?query#fragment")
+    #ParseResult(scheme='scheme', netloc='netloc', path='/path;parameters', params='',
+    #query='query', fragment='fragment')
+    
+    pr = urlparse(url)
+    if pr.scheme:
+        return url
+    
+    # url is relative, we can manage it
+    if pr.query:
+        prefix = '&'
+    else:
+        prefix = ''
+        
+    return pr._replace(query=pr.query + prefix + 'v=' + v).geturl()
 
 def create_clip(img):
     """
@@ -405,7 +471,7 @@ def create_clip(img):
     work_img.onload = img_loaded        
 
 
-def _onerror_image(event):
+def _onerror_image(shape, event):
     """
     @since 0.9.0
     """
@@ -415,7 +481,6 @@ def _onerror_image(event):
     _debug("  - image id:", event.target.getAttribute("id"))
     _debug("  - image href:", event.target.getAttribute("href"))
 
-    shape = Screen()._shapes[event.target.getAttribute("href")]
     _debug(f"  - registered shape: {shape}")
     _debug(f"    - shape size: {shape.get_svg_image_size()}")
     shape.status = Resource.FAILED
@@ -476,7 +541,11 @@ class Shape(object):
             #img.setAttributeNS(None, 'width', 20)
             #img.setAttributeNS(None, 'height', 20)
             #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
-            img.setAttributeNS(None, 'href', data)
+            
+            v = pyscript.config["files"]["{V}"]
+            new_data = _version_url(data, v)
+            
+            img.setAttributeNS(None, 'href', new_data)
             
             self.svg = img 
             self.status = Resource.TO_LOAD
@@ -802,8 +871,8 @@ class _Screen:
             #pyscript 2025.3.1: this gives weird borrowed function errors in pyodide
             #the_shape.svg.addEventListener("load", _on_load_image)
             
-            the_shape.svg.onload = _onload_image
-            the_shape.svg.onerror = _onerror_image
+            the_shape.svg.onload = lambda e: _onload_image(the_shape, e)
+            the_shape.svg.onerror = lambda e: _onerror_image(the_shape, e)
 
         self._shapes[name] =  the_shape
         
@@ -1432,7 +1501,7 @@ class Turtle:
         
     def speed(self, speed=None):
         
-        _warn("Turtle.speed is not implemented yet")
+        _info("Turtle.speed is not implemented yet")
         
         """
         speeds = {'fastest':0, 'fast':10, 'normal':6, 'slow':3, 'slowest':1 }
@@ -1732,25 +1801,119 @@ Eventually, what follows will go into a separate file
 """
 
 _ge_loaded = False
+_ge_status = GameStatus.PLAY
 
-def _ge_play():
-    global _ge_loaded
+def ge_stop():
     """
-    @since 0.9.0
+    @since 0.10.0
     """
-    #TODO SHOULD PROPERLY STOP FIRST WITH _ge_stop()
-    _ge_loaded = False
+    global _ge_status
+     
+    _info(f"Game engine is stopping...")
 
-    _warn("_ge_play: TODO ONLY A STUB")
+    _info("unregistering document onkeydown and onkeyup callbacks")
+    document.onkeydown = None
+    document.onkeyup   = None
 
+    _info("unregistering document onclick callbacks")
+    document.onclick = None
+    _svg.onclick = None
+    
+    _info("unregistering svg onclick callbacks:")
+    sprites = _svg.querySelector('#tps-game-box .sprites')
+    if sprites:
+        for el in sprites.children:
+            _info(f"- {el.id}")
+            el.onclick = None
+    
+    # kill active asyncio Tasks except current one.
+    if asyncio.Task:
+        i = 0
+        ct = asyncio.current_task()
+        for task in asyncio.all_tasks():
+            c = task.get_coro()
+            cn = c.__name__ if c else ''
+            
+            if task.get_name() == ct.get_name(): # can only hope they are ordered in some meaninful way
+                _info(f"- found current task, skipping: {task}")
+            #elif cn == 'eval_code_async':
+            #    _info(f"- found Pyodide< eval_code_async task, skipping: {task}")
+            else:
+                _info(f'- found task, calling cancel(): {task}')
+                try:
+                    
+                    task.cancel("TPS-STOPEX: Stopping the game...")
+                except Exception as ex:
+                    _error(f"Task kill failed: {ex}")
+            i += 1
 
-def _ge_stop():
-    global _ge_loaded
+    # flush stderr and stdout
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    _ge_status = GameStatus.STOP;
+    _info("Game is STOPPED.")
+
+    # sys.exit("TPS Stopped interpreter!") # NO, gives more trouble than anything..
+
+def ge_reset(skip_reload=()):
     """
-    @since 0.9.0
+    @since 0.10.0
     """
-    _ge_loaded = False
-    _warn("_ge_stop: TODO ONLY A STUB")
+    print("ge_reset(): BEGINNING")
+    print("Resetting SVG...");
+    screen_container = document.querySelector('#tps-game-box .tps-screen-container')
+    svg = screen_container.querySelector('svg');
+    if svg:
+        screen_container.removeChild(svg);
+    print("Removing error messages..")
+    errors = document.querySelector('.py-error');
+    if errors:
+        for err in errors.children:
+            err.remove();
+    
+    
+    pyscript_files = set()
+    for k,v in pyscript.config["files"].items():
+        if v:
+            el = v
+        else:
+            el = os.path.basename(k)
+        if el.endswith('.py'):
+            pyscript_files.add(el[:-3])
+
+    to_reload = []
+    to_skip = []
+    for n,m in list(sys.modules.items()):
+            
+        if n in pyscript_files:
+            if n in skip_reload:
+                to_skip.append((n,m))
+            else:    
+                to_reload.append((n,m))
+    to_reload.sort(key=lambda t : t[0])
+    to_skip.sort(key=lambda t : t[0])
+    print(f"pyscript_files to SKIP:  {[n for n,m in to_skip]}")
+    print(f"pyscript_files to RELOAD: {[n for n,m in to_reload]}")
+    
+    for n,m in to_reload:
+        print('Reloading Python module...', m)    
+        importlib.reload(m)
+        
+        
+    kept_stuff = []
+    cleared_stuff = []
+    for g in sorted(list(globals())):
+        
+        if g.startswith('__'):
+            kept_stuff.append(str(g))
+        else:
+            cleared_stuff.append(str(g))
+            del(g)
+            
+    print("Kept globals()   :\n", kept_stuff)
+    print("Cleared globals():\n", cleared_stuff)
+    print('ge_reset(): DONE')
 
     
 async def ge_init():
@@ -1763,9 +1926,9 @@ async def ge_init():
     if _ge_loaded:
         raise CDTNRuntimeError("Tried to initialize game engine twice!")
 
-    loading = document.getElementById('loading');
+    loading = document.querySelector('#tps-game-box .tps-loading');
 
-    loading.showModal();
+    loading.style.visibility = 'visible';
 
     hideturtle()  # dont need it in most games..    
 
@@ -1783,7 +1946,8 @@ async def ge_init():
 
     _ge_loaded = True
 
-    loading.close();
+    loading.style.visibility = 'hidden';
+
 
     failed = [shape.svg.getAttribute("data-cdtn-orig-href") for sname, shape in Turtle._screen._shapes.items() if shape.status == Resource.FAILED]
     _info("- Done loading all resources!")
@@ -1949,7 +2113,7 @@ class Sprite(Turtle):
     def slide(self, x, y, seconds=1) -> Awaitable:
         """ Slowly moves toward a point in a given time. 
 
-            You can call optionally call this function with await
+            You can optionally call this function with await
 
             @since 0.8
         """        
@@ -1966,3 +2130,4 @@ if hasattr(screen, "colormode"):
 
 
 
+_info("Done loading turtleps.py")

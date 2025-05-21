@@ -2,21 +2,16 @@
 
 <html>
     <head>
-        <!-- Recommended meta tags -->
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-        
-        <link rel="stylesheet" href="https://pyscript.net/releases/2025.3.1/core.css">
-      
-        <script type="module" src="https://pyscript.net/releases/2025.3.1/core.js"></script>
-      
         <link rel="stylesheet" href="./css/turtleps.css" />
         <link rel="stylesheet" href="./test/css/turtleps-test.css" />
-      
+        <link rel="stylesheet" href="https://pyscript.net/releases/2025.3.1/core.css">
+        
         <script type="module">
-            import { run } from "./js/turtleps.js";
-            run();
+            import { run_from_params } from "./js/turtleps.js";
+            run_from_params();
         </script>
 
         <title>Turtle Pyscript Tests</title>
@@ -25,38 +20,28 @@
 
     <body>
 
-
-        <dialog id="loading">
-            <h1>Loading...</h1>
-        </dialog>
-
-        <nav id="banner" class="navbar" style="background-color: #000000">
-            <div class="app-header">
+        <nav id="tps-navbar">
+            <div class="tps-app-header">
                 <a href="/">
                     <!--<img src="./img/logo.png" class="logo" /> -->
                 </a>
-                <a class="title" href="https://github.com/CoderDojoTrento/turtle-pyscript" style="color: #f0ab3c">Turtle Pyscript</a>
-                <!--<div class="cdtn-game-ctrl"><span class="cdtn-play">Play</span><span class="cdtn-stop">Stop</span></div>-->
-                <a class="tps-menu-header" href="test.html?s=test/uitests_all.py"> Main tests</a>
-                <a class="tps-menu-header" href="test.html?s=test/uitests_click.py"> Click tests</a>
-                <a class="tps-menu-header" href="test.html?s=test/exp/uitests_canvas.py"> Canvas tests (old)</a>
-                <a class="tps-menu-header" href="test.html?s=test/exp/uitests_canvg.py"> Canvg tests (old)</a>
+                <a class="tps-title" href="https://github.com/CoderDojoTrento/turtle-pyscript">Turtle Pyscript</a>
+
+                <span class="tps-menu-bar">
+                    <a class="tps-menu-header" href="test.html?s=test/uitests_all.py"> Main tests</a>
+                    <a class="tps-menu-header" href="test.html?s=test/uitests_click.py"> Click tests</a>
+                    <a class="tps-menu-header" href="test.html?s=test/exp/uitests_canvas.py"> Canvas tests (old)</a>
+                    <a class="tps-menu-header" href="test.html?s=test/exp/uitests_canvg.py"> Canvg tests (old)</a>
+                </span>
             </div>
         </nav>
 
-        <div id="test-area" class="tps-test-previews">
-
+        <div id="tps-game-area">
+            <div id="tps-game-box"></div>
         </div>
 
-        <section id="tps-pyscript" class="pyscript">
-           
-            <!-- need this dummy just to load config before anything else  -->
-            <script type="py" config="pyscript-test.json">
-                pass
-            </script>
+        <div id="tps-test-area"></div>
 
-        </section>
-        
     </body>
 
 </html>

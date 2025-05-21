@@ -1,3 +1,11 @@
+""" Async gather
+
+Shows complex event management with asyncio.gather primitive 
+
+It should be stoppable and replayable without problems.
+"""
+
+
 from turtleps import *
 import turtleps as tps
 from pyscript import document
@@ -38,13 +46,15 @@ screen = Screen()
 
 ada = Sprite()
 bob = Sprite()
+egg = Sprite()   # will break
 
 ada.shape("turtle")
 bob.shape("arrow")
+egg.shape("triangle")
 
 ada.goto(100,0)
-bob.goto(-100,0)
-
+bob.goto(0,100)
+egg.goto(-100,0)
 
 async def click_ada(event):
     print("event:", event)
@@ -58,6 +68,14 @@ async def update_bob():
     while True:
         await bob.slide(0,100,3)
         await bob.slide(0,-100,3)
+
+
+async def update_egg():
+    await egg.slide(-100,-150,1)
+    egg.setheading(90)
+    raise Exception("Mr Egg was broken!")
+
+
     
 wt = 0.02
 
@@ -78,8 +96,25 @@ async def move_ada():
 
 ada.say("Please click me!", 1)
 
-g = asyncio.gather(update_bob(), 
-                   move_ada())
+b = update_bob()  # assigning doesn't complain about missed await
+a = move_ada()
+e = update_egg()
+
+async def click_egg(event):
+    await egg.say(b, 2)
+    
+# pyscript 2025.3.1 : works in cpython, doesn't  in micropython 
+egg.svg.onclick = click_egg
 
 
-print("STOPPED main")
+g = asyncio.gather(b,                
+                   e,
+                   a)
+tps._info("gather in progress: ", g)
+
+try:
+    await g
+except Exception as e:
+    print("TEST: Caught gather exception ", e)
+
+tps._info("End of uitest_event_loop")

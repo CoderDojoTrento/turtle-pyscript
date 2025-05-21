@@ -75,7 +75,8 @@ def test_register_same_sanitized_id():
     """
     TODO find way to properly reset Screen within same test
     """
-    
+    tps._ge_loaded = False # TODO better propert reset..
+
     screen = Screen()
     screen.register_shape('c d.jpg')
     with pytest.raises(CDTNException) as e_info:
@@ -86,8 +87,8 @@ def test_register_same_sanitized_id():
 async def test_double_init():
     """@since 0.9.0
     """
-    tps._ge_play()
-    
+    tps._ge_loaded = False # TODO better propert reset..
+
     await ge_init()
 
     with pytest.raises(CDTNRuntimeError) as e_info:
@@ -99,7 +100,7 @@ async def test_double_init():
 async def test_register_after_init():
     """@since 0.9.0
     """
-    tps._ge_play()
+    tps._ge_loaded = False # TODO better propert reset..
 
     screen = Screen()    
     screen.register_shape('ab.jpg')
@@ -112,7 +113,6 @@ async def test_register_after_init():
 def test_shape_image_ge_not_inited():
     """@since 0.9.0
     """
-    tps._ge_play()
 
     screen = Screen()    
     screen.register_shape('ab.jpg')
@@ -125,7 +125,7 @@ def test_shape_image_ge_not_inited():
 pytest.main(["--asyncio-mode=auto", 
              "-W","ignore",     # crude but at least I don't see pytest-asyncio warning below 
             "uitest_api.py"])
- 
+
 
 
 """
@@ -141,4 +141,5 @@ _io.js:15       3. Your code does not modify the event loop in async fixtures or
 _io.js:15   
 _io.js:15     warnings.warn(
 """
+
  

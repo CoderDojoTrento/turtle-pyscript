@@ -33,7 +33,7 @@ class VisualTest:
         if itest_area:
             self.test_area = itest_area  #container
         else:
-            self.test_area = document.getElementById('test-area')  #container
+            self.test_area = document.getElementById('tps-test-area')  #container
         
         self.title = document.createElement('a')
         self.description = document.createElement('div')

@@ -74,7 +74,7 @@ def draw_circle(canvas, x, y, color):
 
 
 
-test_area = document.getElementById('test-area');
+test_area = document.getElementById('tps-test-area');
 
 def create_wcanvas(width=400, height=400):
     canvas = document.createElement('canvas')
