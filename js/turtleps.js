@@ -168,13 +168,13 @@ export function run_from_params(){
     let the_options = Object.assign({}, DEFAULT_OPTIONS);
     const params = new URLSearchParams(window.location.search);
     
-    let tps_game_box = document.getElementById("tps-game-box");
-    let dis = tps_game_box ? tps_game_box : document.body;
+    let game_box = document.getElementById("tps-game-box");
+    let msg_box = game_box ? game_box : document.body;
 
     let s = params.get('s');
     
     if (!s){
-        dis.innerHTML = "<h2>PLEASE SELECT A SCRIPT TO RUN</h2>";
+        msg_box.innerHTML = "<h2>PLEASE SELECT A SCRIPT TO RUN</h2>";
         console.log("TPS: Missing s parameter.")
         return;
     }
@@ -182,7 +182,7 @@ export function run_from_params(){
     const re = /(test\/|demo\/)[a-zA-Z0-9_/]+\.py/;
     let arr = re.exec(s);
     if (!arr || ( arr.length == 0 || arr[0].length !== s.length)){
-        dis.innerHTML = "ERROR: WRONG SCRIPT! <br><br> SEE CONSOLE FOR MORE INFO.";    
+        msg_box.innerHTML = "ERROR: WRONG SCRIPT! <br><br> SEE CONSOLE FOR MORE INFO.";    
         throw new Error("Got wrong script url:" + s + "it must respect this regex:" + re);
     }
 
@@ -239,7 +239,7 @@ function update_ui_game_status(game_status){
     
     let play_button = document.querySelector("#tps-game-box .tps-play img");
     let stop_button = document.querySelector("#tps-game-box .tps-stop img");
-    let screen_container  = document.querySelector("#tps-game-box .tps-screen-container");
+    let screen  = document.querySelector("#tps-game-box .tps-screen");
     
     
     if (game_status === "PLAY"){
@@ -249,8 +249,8 @@ function update_ui_game_status(game_status){
         if (stop_button){
             stop_button.classList.remove('tps-ctrl-pressed');
         }
-        if (screen_container){
-            screen_container.classList.remove('tps-screen-container-stopped');
+        if (screen){
+            screen.classList.remove('tps-screen-stopped');
         }
     } else if (game_status === "STOP") {
         if (play_button){
@@ -259,8 +259,8 @@ function update_ui_game_status(game_status){
         if (stop_button){
             stop_button.classList.add('tps-ctrl-pressed');
         }
-        if (screen_container){
-            screen_container.classList.add('tps-screen-container-stopped');
+        if (screen){
+            screen.classList.add('tps-screen-stopped');
         }
     } else {
         throw new Error("Unrecognized game status:", game_status);
@@ -470,44 +470,44 @@ export function run(options){
                        width="30px">
                     </a>
                 </div>
-                <div class="tps-screen-container">
-                </div>
+                <svg class="tps-screen">
+                </svg>
     `;
 
-    const tps_game_area = document.getElementById("tps-game-area");
-    const tps_game_box = document.getElementById('tps-game-box');
+    const game_area = document.getElementById("tps-game-area");
+    const game_box = document.getElementById('tps-game-box');
     
-    if (tps_game_box && tps_game_box.children.length === 0){
+    if (game_box && game_box.children.length === 0){
         console.log("TPS: Populating tps-game-box...");
-        tps_game_box.innerHTML = html;
-        tps_game_box.classList.add("tps-game-box");
+        game_box.innerHTML = html;
+        game_box.classList.add("tps-game-box");
     }
     
     const loading = document.querySelector('#tps-game-box .tps-loading');
-    const tps_screen_container = document.querySelector('#tps-game-box .tps-screen-container');
-    tps_screen_container.classList.add("tps-screen-container-loading");
+    const screen = document.querySelector('#tps-game-box .tps-screen');
+    screen.classList.add("tps-screen-loading");
     loading.style.visibility = 'visible';
 
-    if (tps_game_area){
+    if (game_area){
         if (the_options.sticky){
-            tps_game_area.classList.add('tps-game-area-sticky');
+            game_area.classList.add('tps-game-area-sticky');
         } else {
-            tps_game_area.classList.remove('tps-game-area-sticky');
+            game_area.classList.remove('tps-game-area-sticky');
         }    
     }
     
     
     if (the_options.show_game){
-        tps_screen_container.style.display = "block";
+        screen.style.display = "block";
     } else {
-        tps_screen_container.style.display = "none";
+        screen.style.display = "none";
     }
     
     
 // ECMAScript 6 says it's evaluated only once
     addEventListener('py:ready', () => 
         {loading.style.visibility = 'hidden';
-         tps_screen_container.classList.remove('tps-screen-container-loading');
+         screen.classList.remove('tps-screen-loading');
          update_ui_game_status("PLAY"); // TODO sync with module
         });
 

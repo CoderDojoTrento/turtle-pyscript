@@ -120,17 +120,22 @@ html {
     color:black;
     display: flex;
     justify-content: flex-end;
-    margin-right:11px;
-    margin-bottom:-7px;
+    margin-right:5px;
+    margin-bottom:0px;
 }
 
 .tps-game-ctrl {
     margin-left: 10px;
     user-select: none;
+    min-height: 35px !important;
+    max-height: 35px !important;
+    min-width:35px !important;
+    max-width:35px !important;
 }
 
 .tps-ctrl-pressed {
     border-style:inset;
+    
 }
 
 
@@ -188,26 +193,28 @@ html {
     border-style : solid;
     border-color : #ddd;
     border-width : 3px;
+    margin:7px;
+    min-width: 400px;
+    min-height: 400px;
 }
 
-.tps-screen-container {
-    border-style : solid;
-    border-color : #ddd0;
-    border-width : 10px;
-    min-width: 404px;
-    min-height: 404px;
-}
 
-.tps-screen-container-stopped {
-    border-width : 10px;
+.tps-screen-stopped {
+    margin:10px;
+    border-width : 0px;
     border-image: radial-gradient( 
       #aaa, 
       rgba(0, 0, 0, 0)
     ) 1 ;
     border-color : #999f;
-    border-radius:10px;}
+    border-radius:10px;
+    border-image-width:10px;
+    border-image-outset: 10px;
+}
 
-.tps-screen-container-loading {
+
+.tps-screen-loading {
+    margin:0px;
     border-width : 10px;
     border-image: radial-gradient( 
       #aaa, 

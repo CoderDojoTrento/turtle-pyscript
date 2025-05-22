@@ -369,8 +369,18 @@ _CFG = {"width" : 400, # 0.5,               # Screen
 
 
 _ns = 'http://www.w3.org/2000/svg'
-_svg = document.createElementNS (_ns, 'svg')
-_svg.setAttribute("class",  "tps-screen")
+
+
+_svg = document.querySelector('#tps-game-box .tps-screen');
+if _svg:
+    _info("Found existing svg, cleaning content..", _svg, c=True)
+    _svg.replaceChildren()
+else:
+    _svg = document.createElementNS (_ns, 'svg')
+    _info("Adding new svg", _svg, "to body", c=True)
+    document.body.appendChild (_svg)
+
+_svg.classList.add("tps-screen")
 
 
 _silhouettes = document.createElementNS(_ns, 'g')
@@ -391,15 +401,6 @@ _svg_painting.setAttribute('class', 'painting')
 _svg.appendChild(_svg_painting)
 _svg.appendChild(_svg_sprites)
 
-
-_defaultElement = document.querySelector('#tps-game-box .tps-screen-container');
-if not _defaultElement:
-    _defaultElement = document.body
-
-_info("Adding svg", _svg, "to", _defaultElement, c=True)
-_defaultElement.appendChild (_svg)
-""" CDTN: The _svg container
-"""
 
 
 def _onload_image(shape, event):
@@ -1776,19 +1777,6 @@ def bgcolor(*args):
 
 bgcolor('white')
 
-"""
-def setDefaultElement(element):
-    global _defaultElement
-
-    _defaultElement.removeChild(_svg)
-    _defaultElement = element
-    element.appendChild(_svg)
-
-    _rightSize()
-    bgcolor('white')
-"""
-
-
 
 """
 
@@ -1862,10 +1850,9 @@ def ge_reset(skip_reload=()):
     """
     print("ge_reset(): BEGINNING")
     print("Resetting SVG...");
-    screen_container = document.querySelector('#tps-game-box .tps-screen-container')
-    svg = screen_container.querySelector('svg');
+    svg = document.querySelector('#tps-game-box svg.tps-screen')
     if svg:
-        screen_container.removeChild(svg);
+        svg.replaceChildren();
     print("Removing error messages..")
     errors = document.querySelector('.py-error');
     if errors:
