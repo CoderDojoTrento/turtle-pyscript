@@ -1,4 +1,4 @@
-""" Async gather
+""" Async gather test
 
 Shows complex event management with asyncio.gather primitive 
 
@@ -83,7 +83,7 @@ async def move_ada():
 
     while True:
         # workaround for lag:  https://github.com/CoderDojoTrento/turtle-pyscript/issues/18 
-        ada.color('yellow') 
+        ada.color('black') 
 
         if "ArrowUp" in keys:
             ada.forward(4)
@@ -101,7 +101,7 @@ a = move_ada()
 e = update_egg()
 
 async def click_egg(event):
-    await egg.say(b, 2)
+    await egg.say("You clicked me!", 2)  # TODO put some logging message about tasks state
     
 # pyscript 2025.3.1 : works in cpython, doesn't  in micropython 
 egg.svg.onclick = click_egg

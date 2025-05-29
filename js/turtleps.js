@@ -1,3 +1,4 @@
+import { marked } from "./marked.esm.js";
 
 console.log("Loading turtleps.js ...");
 
@@ -18,7 +19,7 @@ let DEFAULT_OPTIONS = {s: '',
                        show_game: true,   
                        navbar: true,   // only available in run_from_params
                        sticky: false,  // puts control panel high and expands it
-                       show_game: true,
+                       show_desc: true,  
                        config_url : "pyscript.json",
                        cache_expiration : DAY * 60,
                        v: 0,       //  for everything
@@ -148,6 +149,64 @@ export function vectorize(work_img, target) {
 };
 
 
+/*
+    @since 0.11.0
+*/
+async function show_desc(s){
+            
+        const response = await fetch(s);  // TODO would need version, but I guess it's still good enough
+        
+        if (!response.ok) {
+            console.error("Couldn't fetch test:" + s, response);
+        } else {
+            const t = await response.text();
+            console.debug("response.text() result:", t)
+            const re = /^\s*"""(.*?)"""/gms;
+            let arr = re.exec(t);
+            console.debug('parsed test description:', arr);
+            if (!arr || arr.length < 2) {
+                console.log("Couldn't find test description");
+            } else {
+                const d = arr[1];        
+                //console.debug("DESCRIPTION: ", d);
+                const [title, desc] = sep_title_desc(s, d);
+
+                const st = document.querySelector(".tps-script-title");
+                if (st){
+                    st.innerHTML = `<a href="${s}" target="_blank">${title}</a>`
+                }
+                const sd = document.querySelector(".tps-script-description");
+                if (sd){    
+                    sd.innerHTML = marked.parse(desc);
+                }
+            }
+        }    
+}
+
+/*
+   @since 0.11.0
+*/
+export function sep_title_desc(s, raw_string){
+    let sname = s.substring("test/".length, s.length - ".py".length); 
+    const rsp = raw_string.trim();
+    const i = rsp.indexOf('\n'); 
+    let title = '';
+    let descr = '';
+    
+    if (i == -1){
+        title = rsp.trim();
+        descr = '';
+    } else {
+        title = rsp.substring(0,i).trim();
+        descr = rsp.substring(i+1).trim();
+    }
+    if (title.trim().length === 0){
+        title = sname;
+    }
+    
+    return [title, descr];    
+}
+
 /* Runs a script given by page parameter s 
 
      * !!!!!!!   WARNING    !!!!!!!!
@@ -156,7 +215,7 @@ export function vectorize(work_img, target) {
      * 
      * @since 0.10.0
 */
-export function run_from_params(){
+export async function run_from_params(){
     
     let page_name = window.location.pathname.split("/").slice(-1)[0]; 
     console.log("page_name", page_name);
@@ -210,11 +269,6 @@ export function run_from_params(){
                    
     }
 
-    if (s.includes("/uitests_")){   
-        console.log("Found uitests suite, making sticky.");    
-        the_options.sticky = true;
-        the_options.show_game = false;
-    }
 
     let navbar = document.getElementById("tps-navbar");
     
@@ -228,9 +282,47 @@ export function run_from_params(){
             navbar.style.display = "none";
         }
     }
-    run(the_options);
-}
 
+    if (s.includes("/uitests_")){   
+        console.log("Found uitests suite, making sticky.");    
+        the_options.sticky = true;
+        the_options.show_game = false;
+    } else if (s.includes("/uitest_") || subdir == "demo") {
+        if (!the_options.show_desc){
+            console.debug("show_desc is false, skipping description.");    
+        } else {
+            let script_doc = null;
+            let script_title = null;
+            let script_description = null;
+            const game_area = document.getElementById('tps-game-area');
+            if (game_area){
+                script_doc = game_area.querySelector('.tps-script-doc');
+                script_title = game_area.querySelector('.tps-script-title');
+                script_description = game_area.querySelector('.tps-script-description');
+            }
+            if (!script_doc){
+                script_doc = document.createElement('div');
+                script_doc.classList.add("tps-script-doc");
+                game_area.prepend(script_doc);
+            }
+
+            if (!script_title){
+                script_title = document.createElement('h1');
+                script_title.classList.add("tps-script-title");
+                script_doc.appendChild(script_title);
+            }
+            if (!script_description){
+                script_description = document.createElement('div');
+                script_description.classList.add("tps-script-description");
+                script_doc.appendChild(script_description);
+            }
+            
+            await show_desc(s);
+        }
+    }
+        
+    await run(the_options);
+}
 /* 
  * Updates ui game status
  * @since 0.10.0
@@ -433,7 +525,7 @@ function load_timestamp(what, current_time){
  * 
  * @since 0.9.0
  */
-export function run(options){
+export async function run(options){
     
     let the_options = Object.assign({}, DEFAULT_OPTIONS, options);
 
@@ -616,7 +708,7 @@ export function run(options){
             console.log("main", "onAfterRun");
         });
 
-
+        
         
         let tps_pyscript_core_css = document.getElementById('tps-pyscript-core-css');
         if (!tps_pyscript_core_css){
@@ -639,7 +731,7 @@ export function run(options){
     xhttp.open("GET", the_options.config_url); 
     xhttp.responseType = "json";
     xhttp.send();
-    
+    await when(window, "py:done");
 };
 
 

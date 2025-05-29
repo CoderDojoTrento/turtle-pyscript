@@ -1,3 +1,19 @@
+""" Shapesizes test
+
+**Polygon shapes**
+
+- small triangle: we only increase **pen**size, notice it bears no effect on the polygon.
+- big triangle: we only change **shape**size, notice it also affefts the displayed 
+svg `stroke-width`. This is in contrast to original Python turtle 
+(see [issue #36](https://github.com/CoderDojoTrento/turtle-pyscript/issues/36)) 
+but it's an unavoidable consequence of svg `<use>` def tag.
+
+
+**Bitmap images**: TODO
+
+**Vector images**: pensize and shapesize don't affect svg `stroke-width` TODO explain better.
+"""
+
 from turtleps import *
 import turtleps as tps
 
@@ -80,3 +96,21 @@ w.down()
 w.color('orange')
 w.dot(5)
 w.shapesize(-1.0,-1.0)
+
+
+
+y = Turtle(shape="triangle")
+y.up()
+y.goto(150,80)
+y.down()
+y.shapesize(4)
+y.pencolor('red')
+y.fillcolor('yellow')
+
+z = Turtle(shape="triangle")
+z.down()
+z.pensize(10)
+z.goto(70,80)
+z.pencolor('red')
+z.fillcolor('yellow')
+

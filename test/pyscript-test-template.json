@@ -9,7 +9,8 @@
       "main": {
         "https://cdn.skypack.dev/canvg@^4.0.3" : "Canvg",
         "js/imagetracer_v1.2.6.min.js" : "imagetracer",
-        "js/turtleps.js": "turtleps" 
+        "js/marked.esm.js"             : "marked",  
+        "js/turtleps.js"               : "turtleps"
       }
     },
     "packages": ["pytest", "pytest-asyncio"]

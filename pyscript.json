@@ -5,7 +5,8 @@
     "js_modules": {
         "main": {
           "js/imagetracer_v1.2.6.min.js" : "imagetracer",
-          "js/turtleps.js": "turtleps"
+          "js/marked.esm.js"             : "marked",  
+          "js/turtleps.js"               : "turtleps"
         }
     },
     "packages": []

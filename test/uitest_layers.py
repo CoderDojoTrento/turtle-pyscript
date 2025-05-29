@@ -7,19 +7,20 @@ tps._debugging = True
 tps._tracing = False
 
 screen = Screen()
-iarch = "img/ch-archeologist-e.gif"
-screen.register_shape(iarch)
-
-iartic = "img/ch-arctic-big-e.gif"
-screen.register_shape(iartic)
 
 await ge_init()
 
 ada = Sprite()
-ada.shape(iarch)
+ada.shape("turtle")
+ada.shapesize(5)
+ada.color('green')
+
 
 bob = Sprite()
-bob.shape(iartic)
+bob.shape("square")
+bob.shapesize(5)
+bob.color('orange')
+
 
 await asyncio.sleep(1)
 

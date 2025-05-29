@@ -46,9 +46,11 @@ html {
     font-weight: 400;
     font-size: 1.5em;
     line-height: 2em;
-    white-space: nowrap;
-    
+    white-space: nowrap;   
 }
+
+
+
 
 #tps-navbar {
    background-color: #000000;
@@ -89,11 +91,55 @@ html {
 
 }
 
+
+.tps-script-title {
+    word-wrap:break-word;
+    text-wrap:wrap;
+    text-align:center;
+}
+
+h1.tps-script-title {
+    font-size:1.8rem;
+}
+
+h2.tps-script-title  {
+    font-size:1.4rem;
+    margin-bottom:0px;
+}
+
+.tps-script-description {
+    margin-top:0.2rem; 
+    font-size:1.2rem;
+    margin: 1.2rem;
+    padding-bottom:0.5rem;
+}
+
+.tps-script-description code {
+    background-color: #f9f1ff;
+}
+
+
+.tps-script-description h1, h2, h3, h4, h5, h6 {
+    word-wrap:break-word;
+    text-wrap:wrap;
+    text-align:center;
+}
+
+.tps-script-description h1 {
+    font-size:1.8rem;
+}
+
+.tps-script-description h2 {
+    font-size:1.4rem;
+}
+
+
 #tps-game-area {
     display: flex;
     justify-content: center;
-    align-items:center;    
+    align-items:center;
     margin-top:10%;
+    flex-wrap: wrap;
 }
 
 .tps-game-area-sticky {
@@ -196,6 +242,7 @@ html {
     margin:7px;
     min-width: 400px;
     min-height: 400px;
+    user-select: none;
 }
 
 

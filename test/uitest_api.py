@@ -1,14 +1,51 @@
+""" API tests
+
+NOTE: pytests can only be run in a browser environment
+
+TODO: usually pytest can run them all, but for some reason
+the script appears to never end.
+
+"""
+
 
 from turtleps import *
 import turtleps as tps
 import pytest_asyncio
 import pytest
 
-"""
-This works in a browser environment, but sadly not in a regular desktop console one.
- 
-"""
 
+
+exc_data = [
+    CDTNException,
+    CDTNValueError,
+    CDTNRuntimeError,
+]
+
+@pytest.mark.parametrize("Exc", exc_data)
+def test_exceptions(Exc):
+    """ TODO check html elements display
+    """
+
+    with pytest.raises(Exc) as e_info:
+        raise Exc('zam')
+    tps._debug(e_info)
+    s = str(e_info.value)
+
+    assert Exc.__name__ in s
+    assert 'zam' in s
+    
+    with pytest.raises(Exc) as e_info:
+        raise Exc('gib', 'zv', 'tk')
+    
+    tps._debug(e_info)
+
+    s = str(e_info.value)
+    assert Exc.__name__ in s
+    assert 'gib' in s
+    assert 'zv' in s    
+    assert 'tk' in s
+
+    
 def test_xy():
     s = Sprite()
     assert s.x == 0
@@ -36,7 +73,7 @@ async def test_slide():
     s = Sprite()
     with pytest.raises(CDTNValueError) as e_info:
         await s.slide(5,7,-2)
-        tps._debug(e_info)
+    tps._debug(e_info)
 
     s.slide(-5,-7,0)  # equivalent to teletransport
     assert s.x == -5
@@ -121,11 +158,49 @@ def test_shape_image_ge_not_inited():
         ada.shape('ab.jpg')
     tps._debug(e_info)
 
+def test_to_foreground_to_background():
+    """@since 0.11.0
+    """
+    screen = Screen()
+    screen.clear()
+    # raises even if only one sprite
+    with pytest.raises(CDTNRuntimeError) as e_info:
+        screen.background.to_foreground()
 
-pytest.main(["--asyncio-mode=auto", 
+    ada = Sprite(shape="turtle")
+    bob = Sprite(shape="square")
+
+    c = screen.svg_sprites.children
+    
+    assert c[0].id  == screen.background.svg.id
+    assert c[1].id  == screen._defaultSprite.svg.id
+    assert c[2].id  == ada.svg.id
+    assert c[3].id  == bob.svg.id
+    
+    with pytest.raises(CDTNRuntimeError) as e_info:
+        screen.background.to_foreground()
+
+    ada.to_foreground()
+    assert c[0].id  == screen.background.svg.id
+    assert c[1].id  == screen._defaultSprite.svg.id
+    assert c[2].id  == bob.svg.id
+    assert c[3].id  == ada.svg.id
+
+    ada.to_background()
+    assert c[0].id  == screen.background.svg.id
+    assert c[1].id  == ada.svg.id
+    assert c[2].id  == screen._defaultSprite.svg.id
+    assert c[3].id  == bob.svg.id
+    
+    # this just issues a warning
+    screen.background.to_background()
+    
+
+res = pytest.main(["--asyncio-mode=auto", 
              "-W","ignore",     # crude but at least I don't see pytest-asyncio warning below 
-            "uitest_api.py"])
-
+             "uitest_api.py"])
+if res:
+    tps._error("******   TEST(S) FAILED!   ******")
 
 
 """

@@ -316,3 +316,66 @@ def add_sound():
 
 
 sprite.shape()
+
+# ---------------------------------
+
+g = Game(width=200, height=500)
+
+g.add("ada1.gif")
+g.add("sound1.mp3")
+g.add("sfondo1.jpg")
+
+await g.load()
+
+ada = g.add( Sprite() )
+
+ada.shape("ada1.gif")
+ada.goto(200,0)
+ada.size(-1.0, 1.0)   # aka turtle shapesize
+ada.pensize(2)           # turtle pensize
+
+sfondo = g.background()
+sfondo.fillcolor()
+#sfondo.shape("sfondo1.jpg")
+#sfondo.size(2.0,1.2)
+
+
+# if failed, suggest spellings...
+
+
+
+background = Sprite(vg)
+background.rect(0,0,400,400,fill="red", stroke="black")
+
+background.shape(imm3)
+
+sprite1 = Sprite(vg)
+sprite1.shape(imm1)
+
+sprite2 = Sprite(vg)
+sprite3 = Sprite(vg)
+
+
+sprite1 = Sprite()
+sprite1.shape(imm2)
+
+await sprite1.reproduce(sound1, t=-1)
+
+
+
+ada = ge.add_sprite()
+
+def def_shape():
+    pass
+
+def def_sound():
+    pass
+
+def add_shape():
+    pass
+
+def add_sound():
+    pass
+
+
+sprite.shape()

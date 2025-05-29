@@ -1,3 +1,11 @@
+"""Space Rocket demo
+
+Shows keyboard input, async update, path tracing and object detection.
+
+<h3>Use arrow keys to move</h3>
+
+"""
+
 from turtleps import *
 from pyscript import document
 
@@ -6,12 +14,13 @@ ispazio = "img/bg-space-1.gif"
 irazzo = "img/vh-rocket-1ut.gif"
 istella = "img/ob-energy.gif"
 
-screen.bgpic(ispazio) 
+screen.register_shape(ispazio) 
 screen.register_shape(irazzo)
 screen.register_shape(istella)
 
 await ge_init()
 
+screen.background.shape(ispazio)
 
 rocket = Sprite()
 rocket.shape(irazzo)  # rocket guarda in su
@@ -68,7 +77,7 @@ async def scopri():
         await asyncio.sleep(attesa)   # ATTENZIONE all'indentazione!
 
 
-await rocket.say("Usa i tasti freccia!", 2)
+await rocket.say("Let's go!", 2)
 
 asyncio.gather(muovi_stella(), 
                muovi_razzo(),

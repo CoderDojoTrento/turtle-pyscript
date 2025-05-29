@@ -1,8 +1,17 @@
+"""Storytelling demo
+
+Shows comics, background change, clickable objects. 
+"""
 
 from turtleps import *
 
 screen = Screen()
-screen.bgpic("img/bg-seaside-2.gif")
+
+iseaside = "img/bg-seaside-2.gif"
+screen.register_shape(iseaside)
+
+iforest = "img/bg-forest-1.gif"
+screen.register_shape(iforest)
 
 iarc =  "img/ch-archeologist-e.gif"  # looks east
 screen.register_shape(iarc)
@@ -15,6 +24,8 @@ screen.register_shape(idino)
 
 
 await ge_init()
+
+screen.background.shape(iseaside)
 
 ada = Sprite()     # Sprite instead of Turtle
 ada.shape(iarc)    # looks east
@@ -41,7 +52,7 @@ dino.svg.onclick = click_dino
 
 await ada.say("Ciao! Io sono Ada!", 3)
 await ada.say("Tu come ti chiami?", 3)
-"""
+
 await bob.say("Io sono Bob!", 2)
 await bob.say("Mi sono perso!", 3)
 await ada.say("Si vede!", 2)
@@ -52,9 +63,10 @@ bob.shapesize(1.0,1.0)    # looks right
 
 await bob.slide(250, 0)   
 await ada.slide(250, 0, 2)
-"""
+
 dino.hide()
-ada.screen.bgpic("img/bg-forest-1.gif")
+
+screen.background.shape(iforest)
 
 bob.goto(-200, 0)
 ada.goto(-230, 0)

@@ -1,4 +1,4 @@
-""" Click tests
+"""Click tests
 
 <span>See <a href="https://github.com/CoderDojoTrento/turtle-pyscript/issues/22" target="_blank"> issue 22 </a></span>
 
@@ -6,6 +6,7 @@
 import inspect
 import sys 
 from pyscript import document
+import turtleps as tps
 from tps_testing import *
 
 import js
@@ -16,7 +17,7 @@ from pyscript.js_modules import turtleps as tpsjs
 N = 0   # test number
 
 #tps._debugging = False
-#tps._debugging = True
+tps._debugging = True
 #tps._tracing = True
 #tps._tracing = False
 

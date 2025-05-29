@@ -41,24 +41,27 @@ body {
     display: flex;
     flex-direction: column;
     
+    margin-top:0.7rem;
     margin-left:1rem;
     margin-right:1rem;
-    margin-bottom:2rem;
+    margin-bottom:0rem;
 }
 
-.tps-test-title {
-    /*background-color: yellow;*/
-    font-size:1.5rem;
-    word-wrap:break-word;
-    text-wrap:wrap;
+
+.tps-test-preview .tps-script-description {
+    margin-top:0rem;
+    margin-bottom:0rem;
+    padding-bottom:0rem;
+    overflow-y:auto;
+    max-height:200px !important;
 }
 
-.tps-test-description {
-    margin-top:0.2rem;
+.tps-test-preview .tps-script-title  {
+    padding-bottom:0rem;
 }
 
 .tps-test-visual-wrapper {
-    margin-top:0.8rem;
+    margin-top:0rem;
     border-width:1px;
     border-style:solid;
 }

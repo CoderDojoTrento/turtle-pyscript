@@ -74,13 +74,27 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 class CDTNException(Exception):
-    pass
+    def __init__ ( self, *args ):
+        super().__init__(*args)
+
+    def __str__(self):
+        words = []
+        for arg in self.args:
+            #todo handle js elements 
+            words.append(str(arg))
+        return f"{self.__class__.__name__} {' '.join(words)}"
+
+    def __repr__(self):
+        words = []
+        for arg in self.args: 
+            #todo handle js elements
+            words.append(repr(arg))
+        return f"{self.__class__.__name__} ' '.join(words)"
 
 class CDTNValueError(CDTNException):
     """
     @since 0.9.0
     """
-    pass
 
 class CDTNRuntimeError(CDTNException):
     """
@@ -394,13 +408,13 @@ _svg.appendChild(_defs)
 # so we can at least define z-order of turtles
 _svg_sprites = document.createElementNS (_ns, 'g')
 _svg_sprites.setAttribute('class', 'sprites')
-_svg_painting = document.createElementNS (_ns, 'g')
-_svg_painting.setAttribute('class', 'painting')
-
-
-_svg.appendChild(_svg_painting)
 _svg.appendChild(_svg_sprites)
 
+_svg_comics = document.createElementNS (_ns, 'g')
+"""@since 0.11.0"""
+
+_svg_comics.setAttribute('class', 'tps-comics')
+_svg.appendChild(_svg_comics)
 
 
 def _onload_image(shape, event):
@@ -570,7 +584,7 @@ class Shape(object):
         """
         if self._type != "image":
             raise CDTNException("Other types are currently not supported")
-        return (self.svg.getBBox().width,self.svg.getBBox().height )        
+        return (self.svg.getBBox().width, self.svg.getBBox().height )
 
 
     def addcomponent(self, poly, fill, outline=None):
@@ -606,14 +620,34 @@ class Shape(object):
         
         self._data.appendChild(poly)
 
+def get_tag_name(element):
+    """
+    CDTN new
+    TODO TEST THIS..
+    @since 0.11.0
+    """
+
+    if element == None:
+        return "None"
+    
+    ret = element.tagName
+                
+    if element.id:
+        ret += ' ' + element.id
+    elif element.classList:
+        ret += ' ' + element.classList.toString()
+            
+    return ret
+
+
 def Screen():
     """Return the singleton screen object.
     If none exists at the moment, create a new one and return it,
     else return the existing one."""
-    if Turtle._screen is None:
+    if Sprite._screen is None:
         _debug("No default screen found, creating one..")
-        Turtle._screen = _Screen()
-    return Turtle._screen
+        Sprite._screen = _Screen()
+    return Sprite._screen
 
 class _Screen:
     def __init__(self):
@@ -621,8 +655,11 @@ class _Screen:
         self.svg = _svg
         self._clip_paths = _silhouettes
         self.svg_sprites = _svg_sprites
-        self.svg_painting = _svg_painting
-        self._bgpicname = ''
+        self._svg_comics = _svg_comics
+        self.background     = None  # init later
+        self._defaultSprite = None
+
+        
         self._timer = None
         self._delay = _CFG["delay"]
 
@@ -632,13 +669,17 @@ class _Screen:
         self._width = _CFG["width"]
         self._height = _CFG["height"]
         self._offset = [_CFG["width"]//2, _CFG["height"]//2]
-        self._pressedKeys = set()
 
+        translate = f"{self._offset[0]},{self._offset[1] }"
+        self._svg_comics.setAttribute('transform',f"translate({translate})")
+
+        self._pressedKeys = set()
+        
         #self.canvwidth = w
         #self.canvheight = h
         #self.xscale = self.yscale = 1.0
 
-        shapes = {
+        shapes = { 
                    "arrow" : Shape("polygon", ((-10,0), (10,0), (0,10))),
                   "turtle" : Shape("polygon", ((0,16), (-2,14), (-1,10), (-4,7),
                               (-7,9), (-9,8), (-6,5), (-7,1), (-5,-3), (-8,-6),
@@ -656,7 +697,12 @@ class _Screen:
                 "triangle" : Shape("polygon", ((10,-5.77), (0,11.55),
                               (-10,-5.77))),
                   "classic": Shape("polygon", ((0,0),(-5,-9),(0,-7),(5,-9))),
-                   #CDTN not supported "blank" : Shape("image", self._blankimage())
+                   "blank" : Shape("polygon", tuple()),
+                 "bgpanel" : Shape("polygon", (
+                                   (-1 - self._width // 2, 1 + self._height // 2),
+                                   ( 1 + self._width // 2, 1 + self._height // 2),
+                                   ( 1 + self._width // 2,-1 - self._height // 2),
+                                   (-1 - self._width // 2,-1 - self._height // 2)))
                   }
         
         
@@ -664,7 +710,6 @@ class _Screen:
         for name, shape in shapes.items():
             self.register_shape(name, shape)
 
-        self._bgpics = {"nopic" : ""}
 
         #self._mode = mode
         #self._delayvalue = delay
@@ -686,9 +731,6 @@ class _Screen:
         
         window.onresize = _right_size
         _right_size()
-
-
-        self._defaultTurtle = Turtle(screen=self)
 
     def delay(self, delay=None):
         """ Return or set the drawing delay in integer milliseconds.
@@ -714,10 +756,6 @@ class _Screen:
         return  int(1000 / self._delay)
 
 
-
-        
-        
-
     def getshapes(self):
         """Return a list of names of all currently available turtle shapes.
 
@@ -728,6 +766,27 @@ class _Screen:
         ['arrow', 'blank', 'circle', ... , 'turtle']
         """
         return sorted(self._shapes.keys())
+
+    def _clear_background(self):
+        """
+        @since 0.11.0
+        """
+        if self.background:
+            sp = self.background.svg_shape
+            self.background.svg.replaceChildren(sp)
+            self.background.shape('bgpanel')
+        else:
+            self.background = Sprite(screen = self,
+                                     shape = "bgpanel", 
+                                     id_prefix ="turtle-background",
+                                     draw_target = "itself") # dummy element
+        _debug("!!!!!!!!!!!   Setting bgcolor white")
+        self.background.fillcolor("white")
+        self.background.pencolor("red")
+        self.background.shapesize(1.0)
+        self.background.pensize(1)
+        self.background.goto(0,0)
+        
 
     def clear(self):
         """Delete all drawings and all turtles from the TurtleScreen.
@@ -742,28 +801,40 @@ class _Screen:
 
         Note: this method is not available as function.
         """
-        _debug("Screen.clear()")
+        _info("Screen.clear()")
 
+        # TODO LOTS TO RESET...
         #self._delayvalue = _CFG["delay"]
         #self._colormode = _CFG["colormode"]
         #self._delete("all")
-        #self._bgpic = self._createimage("")
-        #self._bgpicname = "nopic"
+        
         #self._tracing = 1
         #self._updatecounter = 0
-        #self._turtles = []
         
-        self.bgcolor("white")
-        self.svg_sprites.replaceChildren()
-        self.svg_painting.replaceChildren()
-        
+        for turtle in self._turtles:
+            turtle.clear()
+
+        self._clear_background()
+        b = self.background
+        bsvg = b.svg
+
+        if not self._defaultSprite:    
+            self._defaultSprite = Sprite(screen=self)
+            self._defaultSprite.pendown()
+
+        d = self._defaultSprite
+        dsvg = d.svg
+        self.svg_sprites.replaceChildren(bsvg, dsvg)
+        self._turtles = [b,d]
+
+        # TODO LOTS TO RESET...  https://github.com/CoderDojoTrento/turtle-pyscript/issues/33
         #for btn in 1, 2, 3:
         #    self.onclick(None, btn)
         #self.onkeypress(None)
         #for key in self._keys[:]:
         #    self.onkey(None, key)
         #    self.onkeypress(None, key)
-        #Turtle._pen = None
+        #Sprite._pen = None
         
 
 
@@ -882,6 +953,8 @@ class _Screen:
     def bgpic(self, picname=None):
         """Set background image or return name of current backgroundimage.
 
+        @deprecated !! CDTN Starting from 0.11.0 use screen.background.shape(picname)  instead
+
         !! CDTN: picname can be any URL, but be careful it will be put into HTML/CSS
                  'as is' so you may have to escape it by calling urllib.parse.quote  
 
@@ -899,15 +972,13 @@ class _Screen:
         >>> screen.bgpic()
         'landscape.gif'
         """
-        if picname is None:
-            return self._bgpicname
-        self._bgpicname = picname
-        _debug(f"Setting background-image {picname}")
-        self.svg.style.setProperty('background-image', f'url({picname})')
+        _info("CDTN Deprecated bgpic call")
+        return self.background.shape()
 
 
     def _window_size(self):
         """ Return the width and height of the turtle window.
+            @deprecated CDTN unused since 0.11.0
         """
         #width = self.cv.winfo_width()
         #if width <= 1:  # the window isn't managed by a geometry manager
@@ -916,26 +987,34 @@ class _Screen:
         #if height <= 1: # the window isn't managed by a geometry manager
         #    height = self.cv['height']
         
-        bcr = self.svg.getBoundingClientRect()
-        
-        return bcr['width'], bcr['height']
+        #bcr = self.svg.getBoundingClientRect()
+        #return bcr['width'], bcr['height']
+        _info("CDTN: deprecated method call _window_size()")
+        return self.svg.width.baseVal.value, self.svg.height.baseVal.value
 
+        
     def window_width(self):
-        """ Return the width of the turtle window.
+        """ @deprecated CDTN unused since 0.11.0
+        
+        Return the width of the turtle window.
 
         Example (for a TurtleScreen instance named screen):
         >>> screen.window_width()
         640
         """
+        _info("CDTN: deprecated method call window_width()")
         return self._window_size()[0]
 
     def window_height(self):
-        """ Return the height of the turtle window.
+        """ @deprecated CDTN unused since 0.11.0
+        
+        Return the height of the turtle window.
 
         Example (for a TurtleScreen instance named screen):
         >>> screen.window_height()
         480
         """
+        _info("CDTN: deprecated method call window_height()")
         return self._window_size()[1]
     
     def _iscolorstring(self, color):
@@ -966,7 +1045,7 @@ class _Screen:
         ...     rt(90)
         ...     dist += 2
         """
-        _warn("Turtle.tracer() is currently *NOT IMPLEMENTED*")
+        _warn("Sprite.tracer() is currently *NOT IMPLEMENTED*")
         """
         if n is None:
             return self._tracing
@@ -979,27 +1058,19 @@ class _Screen:
         """
 
     def bgcolor(self, *args):
-        if len(args) == 0:
-            return self._bgcolor
+        """ @deprecated CDTN since 0.11.0
+        """
+        _info(f"""CDTN: Screen.bgcolor() is deprecated""")        
+        return self.background.fillcolor(*args)
         
-        if len(args) == 0:
-            return self.svg.style["background-color"] 
-        else:
-            s = _parse_color_args(*args)    
-            self.svg.style.setProperty("background-color",  s)
-            
-
     def reset(self):
         if self._timer:
             clearTimeout(self._timer)   # js
-        self.bgcolor('white')
+        self.background.fillcolor('white')
         for turtle in self._turtles:
             turtle.reset()
             turtle._flush()
 
-    def clear(self):
-        for turtle in self._turtles:
-            turtle.clear()
 
     def ontimer(fun, t = 0):
         global _timer
@@ -1007,25 +1078,39 @@ class _Screen:
 
 
 
-class Turtle:
+class Sprite:
 
     _screen = None
 
     def __init__(self, 
                  screen=None,
                  shape=_CFG["shape"],  # NOTE: this is meant to be an id
-                 visible=_CFG["visible"]):
+                 visible=_CFG["visible"],
+                 id_prefix='',  
+                 draw_target=None,
+                ):
+        """
+        id_prefix  : CDTN new -
+        draw_target: CDTN new - the target svg element where the pen draws. Other possible values:
+                                None           :  the default background sprite is used.
+                                "itself" string: when the sprite is not supposed to draw, like a background
+                                 
+                                
+        """
+
+        _debug(f"A new {self.__class__.__name__} is born!")
+
         
-        _debug("A new Turtle is born!")
+        sid = f"{id_prefix if id_prefix else 'sprite'}-{id(self)}"
 
         if not screen:
-            screen = Turtle._screen
+            screen = Sprite._screen
 
         self.screen = screen
         self.screen._turtles.append(self)
 
 
-        self._position = [0,0] 
+        self._position = [0,0]
         self._stretchfactor = (1., 1.)
         self._paths = []   # TODO rename, it hosts anything drawn by the turtle
         self._track = []
@@ -1038,8 +1123,9 @@ class Turtle:
         self._fill = False
         self._heading = 0.0
         self._tilt = 0
-        
-        
+
+        self.tcomics = None
+
 
         #shape_node = document.getElementById(shape)
         #cloned_shape_node = shape_node.cloneNode(True)
@@ -1048,7 +1134,7 @@ class Turtle:
         group_node = document.createElementNS (_ns, 'g')
         use_node = document.createElementNS (_ns, 'use')
         
-        group_node.setAttribute('id', f"sprite-{id(self)}")
+        group_node.setAttribute('id', sid)
 
         """
         <use href="#tree" x="50" y="100" />  
@@ -1060,13 +1146,21 @@ class Turtle:
         group_node.appendChild(use_node)
         self.screen.svg_sprites.appendChild(group_node)
         _debug("turtle was appended to screen.svg_sprites")
-
         self.shape(shape)
 
+        if draw_target == 'itself':
+            self._draw_target = self.svg
+        elif draw_target == None:
+            self._draw_target = screen.background.svg
+        else:
+            if not self.screen.svg.contains(draw_target):
+                raise CDTNValueError(f"Tried to set as draw_target of ", 
+                                      self, 
+                                      " an element which is not within the screen svg:", 
+                                      draw_target)
+            self._draw_target = draw_target
         self.reset()
         _trace(f"{self._heading=}")
-
-
     
 
     def _create_track(self):
@@ -1075,39 +1169,54 @@ class Turtle:
         # _track should start with a move command
         self._track.append('{} {} {}'.format(
             'M',
-            self._position[0] + self.screen._offset[0],
-            self.screen._offset[1] - self._position[1])
+            self._position[0],
+            -self._position[1])
         )
 
         tsp = document.createElementNS(_ns, 'path')
         tsp.setAttribute('fill', 'none')           
         tsp.setAttribute('fill-rule', 'nonzero')     
             
-        self.screen.svg_painting.appendChild(tsp)
+        self._draw_target.appendChild(tsp)
         self._paths.append(tsp)
         self._track_svg_path = tsp
+
+
 
     def reset(self):
         self._heading = 0.0
         self._tilt = 0.0
         self._stretchfactor = (1., 1.)
-        self.down ()
+        self.up()
         self.color ('black', 'black')
         self.pensize (1)
 
         self.home()         # Makes a position but needs a track to put in
         self.clear()        # Makes a track but needs a position to initialize it with
 
-
-       
     def clear(self):
+        """Delete the turtle's drawings from the screen. Do not move turtle.
+
+        No arguments.
+
+        Delete the turtle's drawings from the screen. Do not move turtle.
+        State and position of the turtle as well as drawings of other
+        turtles are not affected.
+
+        Examples (for a Turtle instance named turtle):
+        >>> turtle.clear()
+        """
+
         _debug("Clearing turtle...")
         for path in self._paths:
-            self.screen.svg_painting.removeChild(path)
+            if path.parentNode:
+                path.parentNode.removeChild(path)
+            else:
+                _info("Found path without parent in turtle", path, c=True)
         self._paths = []  
         self._create_track()
         self._moveto(self._position)
-
+    
     def _flush(self):
         
         _trace('Flush:', self._track)
@@ -1125,6 +1234,60 @@ class Turtle:
             tsp.setAttribute('stroke', self._pencolor if self._pencolor != None else 'none')
             tsp.setAttribute('stroke-width', self._pensize)
                 
+    def __str__(self):
+        """
+        @since 0.11.0
+        """
+
+        if self.svg:
+            if self.svg.id:
+                return f"{self.__class__.__name__} svg id: {self.svg.id}"
+
+        return f"{self.__class__.__name__} python id: {id(self)}"
+
+    def __repr__(self):
+        """
+        @since 0.11.0
+        """
+
+        return self.__str__()  # TODO not really a repr...
+
+
+    def draw_target(self): 
+                    #target_svg=None):  # svg
+        """
+        CDTN: new
+        @since 0.11.0
+        If target is provided, sets the target sprite which 
+        will receive the painting, otherwise returns the current one.
+        
+        commands. Imagine each sprite has an infinite transparent
+        layer that brings with it each time it's moving.
+        
+         ----------------
+        |                |
+        |            A   |
+        |        B       |
+        |                |
+        |        T       |
+         ----------------
+         
+        Typically, you will want to draw on the default background B 
+        which is located at the center and usually doesn't move.
+        
+        In the example, your turtle T will draw exacely below B's center.
+        
+        TODO 0.11.0: this below is just a desiderata, drawing on targets 
+             which are shifted is not yet supported in the way described 
+        
+        If you set another draw_target like A which is shifted, then in this case T will draw 
+        to the left of A: if later A moves its layer drawing will move with it. 
+
+        Note you can also set as target a sprite  which lies in a layer above T.
+        """
+        return self.draw_target
+            
+
 
     #def done(self):
     #    self._flush()
@@ -1142,7 +1305,6 @@ class Turtle:
 
         if fillcolor is None:
             self.fillcolor(pencolor)
-
         else:
             self.fillcolor(fillcolor)
 
@@ -1185,13 +1347,12 @@ class Turtle:
         return tuple(c * self._colormode/255 for c in cl)
 
     def pencolor(self, *args):
-        
         if len(args) == 0:
             return self._pencolor
         else:
             s = _parse_color_args(*args)
             self._pencolor = s
-            self.svg.style.setProperty("background-color",  s)
+            self.svg_shape.setAttribute("stroke",  s)
             self._create_track()   # CDTN TODO hack so we can show path with segments of different colors
 
     def fillcolor(self, *args):
@@ -1199,10 +1360,8 @@ class Turtle:
             return self._fillcolor
         else:
             s = _parse_color_args(*args)
-            self._fillcolor = s
-            #TODO change some svg property??
-
-
+            self._fillcolor = s            
+            self.svg_shape.setAttribute("fill",  s)
 
     def home(self):
         self._moveto(0, 0)
@@ -1258,8 +1417,8 @@ class Turtle:
             _trace("goto: self._down")
             self._track.append('{} {} {}'.format(
                 'L' if self._down else 'M',
-                self._position[0] + self.screen._offset[0],
-                self.screen._offset[1] - self._position[1])
+                self._position[0],
+                -self._position[1])
             )
             self._flush()
 
@@ -1286,8 +1445,8 @@ class Turtle:
 
             self._track.append('{} {} {}'.format(
                 'L' if self._down else 'M',
-                self._position[0] + self.screen._offset[0],
-                self.screen._offset[1] - self._position[1])   
+                self._position[0],
+                -self._position[1])   
             )
             self._flush()
 
@@ -1315,7 +1474,7 @@ class Turtle:
         the_id = f"stamp-{uuid4()}"
         cloned = self.svg.cloneNode(True)
         cloned.setAttribute("id", the_id)
-        self.screen.svg_painting.appendChild(cloned)
+        self._draw_target.appendChild(cloned)
         return the_id
 
     def dot(self, radius):
@@ -1323,14 +1482,14 @@ class Turtle:
         <circle cx="50" cy="50" r="50" />
         """
         dot = document.createElementNS (_ns, 'circle')
-        dot.setAttribute('cx', self._position[0] + self.screen._offset[0])
-        dot.setAttribute('cy', self.screen._offset[1] - self._position[1])
+        dot.setAttribute('cx', self._position[0])
+        dot.setAttribute('cy', - self._position[1])
         dot.setAttribute('r', radius)
         dot.setAttribute('fill', self._fillcolor)
         dot.setAttribute('stroke', self._pencolor)
         dot.setAttribute('stroke-width', self._pensize)
 
-        self.screen.svg_painting.appendChild(dot)
+        self._draw_target.appendChild(dot)
         self._paths.append(dot)
 
     def circle(self, radius):
@@ -1338,13 +1497,14 @@ class Turtle:
         <circle cx="50" cy="50" r="50" />
         """
         circle = document.createElementNS (_ns, 'circle')
-        circle.setAttribute('cx', self._position[0] + self.screen._offset[0])
-        circle.setAttribute('cy', self.screen._offset[1] - self._position[1] )
+        circle.setAttribute('cx', self._position[0])
+        circle.setAttribute('cy', - self._position[1] )
         circle.setAttribute('r', radius)
         circle.setAttribute('fill', 'none')
         circle.setAttribute('stroke', self._pencolor)
         circle.setAttribute('stroke-width', self._pensize)
-        self.screen.svg_painting.appendChild(circle)
+        
+        self._draw_target.appendChild(circle)
         self._paths.append(circle)
 
 
@@ -1379,7 +1539,7 @@ class Turtle:
         rot = math.degrees(-self._heading - self._tilt + tilt_fix) 
         _trace(f"{rot=}")
         scale = f"{self._stretchfactor[0]},{self._stretchfactor[1]}"
-        translate = f"{self._position[0] + self.screen._offset[0]},{self.screen._offset[1] - self._position[1]}"
+        translate = f"{self._position[0] + self.screen._offset[0]},{- self._position[1] + self.screen._offset[1] }"
 
         self.svg.setAttribute('transform',f"translate({translate})")
         self.svg_shape.setAttribute('transform', 
@@ -1392,10 +1552,12 @@ class Turtle:
                                         f"translate(-{size[0] // 2}, -{size[1] // 2}) rotate({rot}) scale({scale})")
         
             self.svg_shape.setAttribute('transform-origin',f'{size[0] // 2} {size[1] // 2}'); 
+        elif shape._type == "polygon":
+            self.svg_shape.setAttribute('transform-origin','');             
         else:
-            #TODO manage polygon and compound cases
-            pass
-
+            _warn("Case not supported:", shape._type)
+            
+    
     def setheading(self, to_angle):
         """Set the orientation of the turtle to to_angle.
 
@@ -1502,7 +1664,7 @@ class Turtle:
         
     def speed(self, speed=None):
         
-        _info("Turtle.speed is not implemented yet")
+        _info("Sprite.speed is not implemented yet")
         
         """
         speeds = {'fastest':0, 'fast':10, 'normal':6, 'slow':3, 'slowest':1 }
@@ -1559,8 +1721,8 @@ class Turtle:
         <text x="20" y="35" class="small">My</text>
         """
         txt = document.createElementNS (_ns, 'text')
-        txt.setAttribute('x', self._position[0] + self.screen._offset[0])
-        txt.setAttribute('y', self.screen._offset[1] - self._position[1])
+        txt.setAttribute('x', self._position[0])
+        txt.setAttribute('y', - self._position[1])
         txt.textContent = arg
 
         #for now let's use text-anchor https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/text-anchor
@@ -1583,7 +1745,7 @@ class Turtle:
         """
         txt.setAttribute('style',  style)
         
-        self.screen.svg_painting.appendChild(txt)
+        self._draw_target.appendChild(txt)
         self._paths.append(txt)
 
         """
@@ -1611,7 +1773,7 @@ class Turtle:
         >>> turtle.showturtle()
         """
         self.svg.setAttribute('visibility', 'visible')
-
+        self._shown = True
         #self.pen(shown=True)
 
     def hideturtle(self):
@@ -1630,6 +1792,8 @@ class Turtle:
         """
         self.svg.setAttribute('visibility', 'hidden')
         self._shown = False
+        if self.tcomics:
+            self.tcomics.clear()
         #self.pen(shown=False)
 
 
@@ -1670,9 +1834,8 @@ class Turtle:
             return self._shape
         _debug(f"Setting turtle shape to {name}")
         if not name in self.screen.getshapes():
-            raise TurtleGraphicsError("There is no registered shape named %s" % name)
+            raise TurtleGraphicsError(f"There is no registered shape named {name}")
                 
-
         self._shape = name
         sid = _sanitize_id(name)        
         shape_el = document.getElementById(sid)
@@ -1688,8 +1851,8 @@ class Turtle:
         
         
         if shape_el.tagName == 'polygon':
-            self.svg_shape.setAttribute('fill', _CFG["fillcolor"])
-            self.svg_shape.setAttribute('stroke', _CFG["pencolor"])
+            self.svg_shape.setAttribute('fill', self._fillcolor)
+            self.svg_shape.setAttribute('stroke', self._pencolor)
             self.svg_shape.setAttribute('stroke-width', 1)
             self.svg_shape.setAttribute('fill-rule', 'evenodd')
 
@@ -1712,50 +1875,218 @@ class Turtle:
     down = pendown
     turtlesize = shapesize    
 
+    def hide(self):
+        self.hideturtle()
+
+    def show(self):
+        self.showturtle()
 
 
-def pensize(width=None):                    return Turtle._screen._defaultTurtle.pensize(width)
-def color(pencolor, fillcolor = None): Turtle._screen._defaultTurtle.color(pencolor, fillcolor)
-def home():                            Turtle._screen._defaultTurtle.home()
-def goto(x, y = None):                 Turtle._screen._defaultTurtle.goto(x, y)
-def position(): return Turtle._screen._defaultTurtle.position()
-def pos(): return Turtle._screen._defaultTurtle.pos()
-def xcor(): return Turtle._screen._defaultTurtle.xcor()
-def ycor(): return Turtle._screen._defaultTurtle.ycor()
+    @property
+    def x(self):
+        """
+            @since 0.8
+        """
+        return self._position[0]
+
+    @x.setter
+    def x(self, value: float):
+        """
+            @since 0.8
+        """        
+        self.goto(value, self._position[1])
+
+    @property
+    def y(self):
+        """
+            @since 0.8
+        """        
+        return self._position[1]
+
+    @y.setter
+    def y(self, value: float):
+        """
+            @since 0.8
+        """        
+        self.goto(self._position[0], value)
+
+    def to_foreground(self):
+        if self is self._screen.background:
+            raise CDTNRuntimeError("Sending special background sprite to foreground is not allowed")
+        ss = self.screen.svg_sprites
+        ss.removeChild(self.svg)
+        ss.appendChild(self.svg)
+
+    def to_background(self):
+        if self is self._screen.background:
+            _warn("Attempted sending special background sprite to background, ignoring command.")
+            return 
+
+        self.screen.svg_sprites.removeChild(self.svg)
+        self._screen.background.svg.after(self.svg)
+        
+
+    async def _say(self, text, seconds, dx=0, dy=65):
+        """
+            @since 0.8
+        """
+        #if dy == None:
+            #_debug(f"sprite.svg")
+            #_debug(f"{sprite.svg.getBBox()=}")
+            
+            #dy = sprite.svg.getBBox().height()  # gives weird TypeError int 
+            #_debug(f"{dy=}")
+
+        if not self._shown:
+            return
+        
+        if self.tcomics:
+            tc = self.tcomics
+            tc.clear()
+        else:
+            self.tcomics = Sprite(draw_target = self.screen._svg_comics)
+            tc = self.tcomics
+            tc.hide()
+            tc.speaking = 0
+        
+        tc.speaking += 1
+
+        tc.forward(0) # should bring it to front but in trinket it doesnt :-/
+        
+        fontsize = 15
+        carw = 0.5 * fontsize
+        base = (len(text)+2)*carw
+        alt = 28
+        tc.penup()
+        x = self.x + dx - base//3
+        y = self.y + dy
+        if x + base > 200:
+            x = 200 - base
+        if y + alt > 200:
+            y = 200
+        if x < -200:
+            x = -200
+        if y < -200 + alt:
+            y = -200 + alt
+        tc.goto(x, y)
+        tc.pendown()
+        tc.pencolor("black")
+        tc.fillcolor("white")
+        
+        tc.setheading(0)
+        tc.begin_fill()
+        for i in range(2):
+            tc.forward(base)
+            tc.right(90)
+            tc.forward(alt)
+            tc.right(90)
+        tc.end_fill()
+        tc.penup()
+        tc.color("black", "white")
+        tc.forward(base / 2)
+        tc.right(90)
+        tc.forward(fontsize*1.2)
+        tc.write(text,
+                            align="center",
+                            font=('Arial', fontsize, 'normal'))
+        
+        await asyncio.sleep(seconds)
+        
+        tc.speaking = tc.speaking - 1 
+        
+        if tc.speaking == 0:  # only the last one should clear
+            tc.clear()
+        
 
 
-def distance(x, y = None): return Turtle._screen._defaultTurtle.distance(x, y)
-def penup():                              Turtle._screen._defaultTurtle.penup()
-def pendown():                            Turtle._screen._defaultTurtle.pendown()
+    def say(self, text,seconds, dx=0, dy=65) -> Awaitable:
+        """ Shows text in a popup withc distance dx,dy from the sprite
 
-def up():                              Turtle._screen._defaultTurtle.penup()
-def down():                            Turtle._screen._defaultTurtle.pendown()
-def forward(length):                   Turtle._screen._defaultTurtle.forward(length)
-def back(length):                      Turtle._screen._defaultTurtle.back(length)
-def circle(radius):                    Turtle._screen._defaultTurtle.circle(radius)
-def left(angle):                       Turtle._screen._defaultTurtle.left(angle)
-def right(angle):                      Turtle._screen._defaultTurtle.right(angle)
-def begin_fill():                      Turtle._screen._defaultTurtle.begin_fill()
-def end_fill():                        Turtle._screen._defaultTurtle.end_fill()
-def heading():                         return Turtle._screen._defaultTurtle.heading() 
-def tiltangle(angle=None):             return Turtle._screen._defaultTurtle.tiltangle(angle)
-def tilt(angle):                       return Turtle._screen._defaultTurtle.tilt(angle) 
+            You can optionally call this function with await
 
-def speed(speed):                      return Turtle._screen._defaultTurtle.speed(speed)
-def setheading(angle):                 Turtle._screen._defaultTurtle.setheading(angle)
-def hideturtle():                      Turtle._screen._defaultTurtle.hideturtle()
-def ht():                      Turtle._screen._defaultTurtle.hideturtle()
-def showturtle():                      Turtle._screen._defaultTurtle.showturtle()
-def stamp():                      return Turtle._screen._defaultTurtle.stamp()
+            @since 0.8: optionally awaitable
+        """
+        return _schedule_task(self._say(text,seconds,dx,dy))
 
-def st():                      Turtle._screen._defaultTurtle.showturtle()
-def pencolor(*args):           return Turtle._screen._defaultTurtle.pencolor(*args)
-def fillcolor(*args):          return Turtle._screen._defaultTurtle.fillcolor(*args)
-def shapesize(stretch_wid=None, stretch_len=None):          Turtle._screen._defaultTurtle.shapesize(stretch_wid, stretch_len)
-def shape(name=None): return Turtle._screen._defaultTurtle.shape(name)
-def dot(radius):     Turtle._screen._defaultTurtle.dot(radius)
-def circle(radius):     Turtle._screen._defaultTurtle.circle(radius)
-def write(arg, align="left", font=("Arial", 8, "normal")): Turtle._screen._defaultTurtle.write(arg, align=align, font=font)
+
+    async def _slide(self,x,y,seconds):
+        """
+            TODO make it leave a painting trace..
+
+            @since 0.8
+        """
+        if seconds < 0: 
+            raise CDTNValueError(f"Seconds should be positive, found instead: {seconds}")
+        
+        if seconds == 0:
+            self.x = x
+            self.y = y
+            await asyncio.sleep(0)
+        else:
+            frames = seconds * Sprite._screen.framerate()
+            sides = x - self.x, y - self.y
+            delta_space = (sides[0] / frames), (sides[1] / frames)
+            _debug(f"{delta_space}=")
+            _debug(f"{self.x}=")
+            for i in range(frames):
+                self.x += delta_space[0]            
+                self.y += delta_space[1]
+                await asyncio.sleep(Sprite._screen._delay / 1000)
+
+
+    def slide(self, x, y, seconds=1) -> Awaitable:
+        """ Slowly moves toward a point in a given time. 
+
+            You can optionally call this function with await
+
+            @since 0.8
+        """        
+        return _schedule_task(self._slide(x,y,seconds))
+
+
+
+def pensize(width=None):                    return Sprite._screen._defaultSprite.pensize(width)
+def color(pencolor, fillcolor = None): Sprite._screen._defaultSprite.color(pencolor, fillcolor)
+def home():                            Sprite._screen._defaultSprite.home()
+def goto(x, y = None):                 Sprite._screen._defaultSprite.goto(x, y)
+def position(): return Sprite._screen._defaultSprite.position()
+def pos(): return Sprite._screen._defaultSprite.pos()
+def xcor(): return Sprite._screen._defaultSprite.xcor()
+def ycor(): return Sprite._screen._defaultSprite.ycor()
+
+
+def distance(x, y = None): return Sprite._screen._defaultSprite.distance(x, y)
+def penup():                              Sprite._screen._defaultSprite.penup()
+def pendown():                            Sprite._screen._defaultSprite.pendown()
+
+def up():                              Sprite._screen._defaultSprite.penup()
+def down():                            Sprite._screen._defaultSprite.pendown()
+def forward(length):                   Sprite._screen._defaultSprite.forward(length)
+def back(length):                      Sprite._screen._defaultSprite.back(length)
+def circle(radius):                    Sprite._screen._defaultSprite.circle(radius)
+def left(angle):                       Sprite._screen._defaultSprite.left(angle)
+def right(angle):                      Sprite._screen._defaultSprite.right(angle)
+def begin_fill():                      Sprite._screen._defaultSprite.begin_fill()
+def end_fill():                        Sprite._screen._defaultSprite.end_fill()
+def heading():                         return Sprite._screen._defaultSprite.heading() 
+def tiltangle(angle=None):             return Sprite._screen._defaultSprite.tiltangle(angle)
+def tilt(angle):                       return Sprite._screen._defaultSprite.tilt(angle) 
+
+def speed(speed):                      return Sprite._screen._defaultSprite.speed(speed)
+def setheading(angle):                 Sprite._screen._defaultSprite.setheading(angle)
+def hideturtle():                      Sprite._screen._defaultSprite.hideturtle()
+def ht():                      Sprite._screen._defaultSprite.hideturtle()
+def showturtle():                      Sprite._screen._defaultSprite.showturtle()
+def stamp():                      return Sprite._screen._defaultSprite.stamp()
+
+def st():                      Sprite._screen._defaultSprite.showturtle()
+def pencolor(*args):           return Sprite._screen._defaultSprite.pencolor(*args)
+def fillcolor(*args):          return Sprite._screen._defaultSprite.fillcolor(*args)
+def shapesize(stretch_wid=None, stretch_len=None):          Sprite._screen._defaultSprite.shapesize(stretch_wid, stretch_len)
+def shape(name=None): return Sprite._screen._defaultSprite.shape(name)
+def dot(radius):     Sprite._screen._defaultSprite.dot(radius)
+def circle(radius):     Sprite._screen._defaultSprite.circle(radius)
+def write(arg, align="left", font=("Arial", 8, "normal")): Sprite._screen._defaultSprite.write(arg, align=align, font=font)
 
 
 fd = forward
@@ -1769,14 +2100,11 @@ seth = setheading
 turtlesize = shapesize
 
 
-Turtle._screen = Screen()
-Turtle._screen.setup(400,400)
+Sprite._screen = Screen()
+Sprite._screen.setup(400,400)
 
 def bgcolor(*args):
-    Turtle._screen.bgcolor(*args)
-
-bgcolor('white')
-
+    Sprite._screen.bgcolor(*args)
 
 """
 
@@ -1854,9 +2182,9 @@ def ge_reset(skip_reload=()):
     if svg:
         svg.replaceChildren();
     print("Removing error messages..")
-    errors = document.querySelector('.py-error');
+    errors = document.querySelectorAll('.py-error');
     if errors:
-        for err in errors.children:
+        for err in errors:
             err.remove();
     
     
@@ -1925,7 +2253,7 @@ async def ge_init():
     while need_loading:
         _debug("Not yet loaded, reattempting..")
         need_loading = False
-        for sname, shape in Turtle._screen._shapes.items():
+        for sname, shape in Sprite._screen._shapes.items():
             if shape.status == Resource.TO_LOAD:
                 need_loading = True
                 break
@@ -1936,7 +2264,7 @@ async def ge_init():
     loading.style.visibility = 'hidden';
 
 
-    failed = [shape.svg.getAttribute("data-cdtn-orig-href") for sname, shape in Turtle._screen._shapes.items() if shape.status == Resource.FAILED]
+    failed = [shape.svg.getAttribute("data-cdtn-orig-href") for sname, shape in Sprite._screen._shapes.items() if shape.status == Resource.FAILED]
     _info("- Done loading all resources!")
     if failed:
         _error("These shapes failed loading:")
@@ -1944,167 +2272,25 @@ async def ge_init():
             _error(fail)
 
 
-""" Some renaming, turtle everywhere can get confusing
-"""
-class Sprite(Turtle):
+class Turtle(Sprite):
 
     def __init__( self, 
                   screen=None,
                   shape=_CFG["shape"],        # NOTE: this is meant to be an id
-                  visible=_CFG["visible"]):
-        super().__init__(screen, shape, visible)
-        self.penup()  # no need for pen in most videogames..
+                  visible=_CFG["visible"],
+                  id_prefix='',        # CDTN new
+                  draw_target=None,):  # CDTN new
+    
+        super().__init__(screen=screen, 
+                         shape=shape, 
+                         visible=visible, 
+                         id_prefix=id_prefix, 
+                         draw_target=draw_target)
+        self.pendown()  # no need for pen in most videogames..
 
-    def hide(self):
-        self.hideturtle()
-
-    def show(self):
-        self.showturtle()
-
-
-    @property
-    def x(self):
-        """
-            @since 0.8
-        """
-        return self._position[0]
-
-    @x.setter
-    def x(self, value: float):
-        """
-            @since 0.8
-        """        
-        self.goto(value, self._position[1])
-
-    @property
-    def y(self):
-        """
-            @since 0.8
-        """        
-        return self._position[1]
-
-    @y.setter
-    def y(self, value: float):
-        """
-            @since 0.8
-        """        
-        self.goto(self._position[0], value)
-
-    def to_foreground(self):
-
-        self.screen.svg_sprites.removeChild(self.svg)
-        self.screen.svg_sprites.appendChild(self.svg)
-
-    def to_background(self):
-        ss = self.screen.svg_sprites
-        ss.removeChild(self.svg)
-
-        if len(self.screen._turtles) > 0:
-            ss.insertBefore(self.svg, ss.children[0])
-        else: 
-            ss.appendChild(self.svg)
-
-
-    async def _say(self, text, seconds, dx=0, dy=65):
-        """
-            @since 0.8
-        """
-        #if dy == None:
-            #_debug(f"sprite.svg")
-            #_debug(f"{sprite.svg.getBBox()=}")
-            
-            #dy = sprite.svg.getBBox().height()  # gives weird TypeError int 
-            #_debug(f"{dy=}")
-        
-        tfumetto = Turtle()
-        #self.screen.tracer(0) # TODO
-        tfumetto.speed(0)
-        tfumetto.hideturtle()
-        tfumetto.forward(0) # should bring it to front but in trinket it doesnt :-/
-        fontsize = 15
-        carw = 0.5 * fontsize
-        base = (len(text)+2)*carw
-        alt = 28
-        tfumetto.penup()
-        x = self.xcor() + dx - base//3
-        y = self.ycor() + dy
-        if x + base > 200:
-            x = 200 - base
-        if y + alt > 200:
-            y = 200
-        if x < -200:
-            x = -200
-        if y < -200 + alt:
-            y = -200 + alt
-        tfumetto.goto(x, y)
-        tfumetto.pendown()
-        tfumetto.pencolor("black")
-        tfumetto.fillcolor("white")
-        
-        tfumetto.setheading(0)
-        tfumetto.begin_fill()
-        for i in range(2):
-            tfumetto.forward(base)
-            tfumetto.right(90)
-            tfumetto.forward(alt)
-            tfumetto.right(90)
-        tfumetto.end_fill()
-        tfumetto.penup()
-        tfumetto.color("black", "white")
-        tfumetto.forward(base / 2)
-        tfumetto.right(90)
-        tfumetto.forward(fontsize*1.2)
-        tfumetto.write(text,
-                    align="center",
-                    font=('Arial', fontsize, 'normal'))
-        
-        #self.screen.tracer(1)  # TODO
-        await asyncio.sleep(seconds)
-        tfumetto.clear()
-
-    def say(self, text,seconds, dx=0, dy=65) -> Awaitable:
-        """ Shows text in a popup withc distance dx,dy from the sprite
-
-            You can optionally call this function with await
-
-            @since 0.8: optionally awaitable
-        """
-        return _schedule_task(self._say(text,seconds,dx,dy))
-
-
-    async def _slide(self,x,y,seconds):
-        """
-            TODO make it leave a painting trace..
-
-            @since 0.8
-        """
-        if seconds < 0: 
-            raise CDTNValueError(f"Seconds should be positive, found instead: {seconds}")
-        
-        if seconds == 0:
-            self.x = x
-            self.y = y
-            await asyncio.sleep(0)
-        else:
-            frames = seconds * Turtle._screen.framerate()
-            sides = x - self.x, y - self.y
-            delta_space = (sides[0] / frames), (sides[1] / frames)
-            _debug(f"{delta_space}=")
-            _debug(f"{self.x}=")
-            for i in range(frames):
-                self.x += delta_space[0]            
-                self.y += delta_space[1]
-                await asyncio.sleep(Turtle._screen._delay / 1000)
-
-
-    def slide(self, x, y, seconds=1) -> Awaitable:
-        """ Slowly moves toward a point in a given time. 
-
-            You can optionally call this function with await
-
-            @since 0.8
-        """        
-        return _schedule_task(self._slide(x,y,seconds))
+    def reset(self):
+        super().reset()
+        self.pendown()
 
 
 """
