@@ -25,7 +25,6 @@ from pyscript import document, window
 from pyscript.js_modules import turtleps as tpsjs
 
 
-
 _debugging = False
 #_debugging = True
 #_tracing = True
@@ -137,9 +136,9 @@ class Resource(Enum):
 
 class GameStatus(Enum):
     """ 
-        PLAYING is normal status, simply means turtleps module is loaded
+        PLAY is normal status, simply means turtleps module is loaded
     
-        STOPPED is intended as 'panic mode':
+        STOP is intended as 'panic mode':
         - asyncio tasks are shut down
             - what about main.py? 
         - Sounds are interrupted
@@ -152,7 +151,7 @@ class GameStatus(Enum):
 
     PLAY = 0,
     STOP = 1
-    
+
 IMG_WARNING = "img/warning.svg"
 """
 @since 0.9.0
@@ -254,6 +253,9 @@ def _schedule_task(awaitable):
         t.add_done_callback(clean_task) # consider stop
     
     return t
+
+import pprint
+_info('Received pyscript.config:', pprint.pprint(pyscript.config))
 
 
 
@@ -2242,8 +2244,11 @@ async def ge_init():
         raise CDTNRuntimeError("Tried to initialize game engine twice!")
 
     loading = document.querySelector('#tps-game-box .tps-loading');
+    play_banner_button = document.querySelector('#tps-game-box .tps-play-banner');
+    play_button = document.querySelector('#tps-game-box .tps-play');
 
     loading.style.visibility = 'visible';
+    play_banner_button.style.visibility = 'hidden';
 
     hideturtle()  # dont need it in most games..    
 
@@ -2270,6 +2275,17 @@ async def ge_init():
         _error("These shapes failed loading:")
         for fail in failed:
             _error(fail)
+
+    # using our mirrored global config as unfortunately Pyscript doesn't support changing config between runs
+    obm = tpsjs.tps_config.tps.as_object_map()
+    play_banner = obm["{play_banner}"]
+    nrun = obm["{nrun}"]
+    if play_banner == 1:
+        await tpsjs.show_play_banner(play_banner, nrun); 
+
+    _info("- ge_init is done!")
+
+
 
 
 class Turtle(Sprite):

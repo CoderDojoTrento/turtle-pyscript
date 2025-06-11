@@ -9,5 +9,8 @@
           "js/turtleps.js"               : "turtleps"
         }
     },
-    "packages": []
+    "packages": [],
+    "tps": {
+
+    }
 }

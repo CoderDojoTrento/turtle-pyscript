@@ -3,6 +3,10 @@
         "turtleps.py": "",
         "demo/storytelling.py": "",
         "test/tps_testing.py": "",
+        "test/stresstest_forever.py": "",
+        "test/stresstest_forever_await.py": "",
+        "test/stresstest_forever_await_fun.py": "",
+        "test/stresstest_mem_eater.py": "",
         "test/uitest_api.py": "",
         "test/uitest_async_gather.py": "",
         "test/uitest_async_stop.py": "",
@@ -41,5 +45,6 @@
     "packages": [
         "pytest",
         "pytest-asyncio"
-    ]
+    ],
+    "tps": {}
 }

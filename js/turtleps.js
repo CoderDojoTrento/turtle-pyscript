@@ -2,29 +2,57 @@ import { marked } from "./marked.esm.js";
 
 console.log("Loading turtleps.js ...");
 
+
+/*
+ * A global mutable config to be shared with python - 
+ * Don't like having global stuff but unfortunately as of 2025.3.1 pyscript
+ * doesn't allow proper config reload.  
+ * @since 0.12.0 
+ */
+export let tps_config = {
+    tps : {
+        
+    }
+};
 /*
  * @since 0.10.0
  */
-const DAY = 1000*60*60*24; // as milliseconds
+export const DAY = 1000*60*60*24; // as milliseconds
 /*
  * @since 0.10.0
  */
-const PYSCRIPT_CORE_VERSION = "2025.3.1";
+export const PYSCRIPT_CORE_VERSION = "2025.3.1";
 
 /*  ordered by importance first to last  
     
 */
-let DEFAULT_OPTIONS = {s: '',
-                       refresh_buttons: true,    
-                       show_game: true,   
-                       navbar: true,   // only available in run_from_params
-                       sticky: false,  // puts control panel high and expands it
-                       show_desc: true,  
-                       config_url : "pyscript.json",
-                       cache_expiration : DAY * 60,
-                       v: 0,       //  for everything
-                       v_code: 0,
-                       // mode: 'dev', // allowed: 'dev' or 'demo' // not neededd for now 
+export let DEFAULT_OPTIONS = {  s: '',
+                                refresh_buttons: true,
+                                /** Suspends execution and shows a big play banner:
+                                 * 
+                                 *   -1: never
+                                 *    0: right before executing python
+                                 *    1: at the end of first ge_init call
+                                 *
+                                 *  ignored when nrun > 1
+                                 *
+                                 *  @since 0.12.0
+                                */    
+                                play_banner: -1,
+                                show_game: true,
+                                /** only available in run_from_params */   
+                                navbar: true,   
+                                /** puts control panel high and expands it */
+                                sticky: false,  
+                                show_desc: true,  
+                                config_url : "pyscript.json",
+                                cache_expiration : DAY * 60,
+                                /**  for everything */
+                                v: 0,       
+                                v_code: 0,
+                                /** @since 0.12.0 */                              
+                                nrun : 1
+                                // mode: 'dev', // allowed: 'dev' or 'demo' // not neededd for now 
 }
 
 /* @since 0.10.0
@@ -32,7 +60,7 @@ let DEFAULT_OPTIONS = {s: '',
 Awaits event on given target only *once*
 */
 // https://www.reddit.com/r/learnjavascript/comments/19alv5n/what_would_be_bestpractice_to_wait_until_2_events/
-async function when(target, event, {
+export async function when(target, event, {
   signal, capture, passive, 
 } = {}) {
   const { promise, resolve } = Promise.withResolvers();
@@ -207,6 +235,59 @@ export function sep_title_desc(s, raw_string){
     return [title, descr];    
 }
 
+/** 
+ * 
+ * @since 0.12.0
+ */
+export async function show_play_banner(play_banner, nrun){
+    if (play_banner === -1){
+        console.debug("play_banner flag is", play_banner, "not showing it");
+        return;
+    }
+    if ((play_banner >= 0) && (nrun > 1)){
+        console.debug("nrun is", nrun, "not showing play_banner");
+        return;
+    }
+
+    const loading         = document.querySelector('#tps-game-box .tps-loading');
+    const play_banner_button = document.querySelector('#tps-game-box .tps-play-banner');
+    const play_button     = document.querySelector("#tps-game-box .tps-play");
+    
+    // TODO reload_button for now is just disabled, it would be more logical to actually interrupt this funciton and refresh
+    const reload_button     = document.querySelector("#tps-game-box .tps-reload");
+    
+    console.log("Waiting player click on play panel / play / reload...")
+
+    loading.style.visibility = 'hidden';
+    play_banner_button.style.visibility = 'visible';
+    
+    let old_play_click = play_button.onclick;     
+    play_button.onclick = null;
+
+    let old_reload_click = reload_button.onclick;     
+    reload_button.onclick = null;
+
+    await Promise.any([when(play_banner_button, "click"), 
+                       when(play_button, "click"),
+                       when(reload_button, "click"),
+]);
+
+    console.debug("Restoring play onclicks...")
+
+    play_button.onclick   = old_play_click;
+    reload_button.onclick   = old_reload_click;
+
+    if (play_banner === 0){
+        loading.style.visibility = 'visible';
+    } else if (play_banner === 1){
+        loading.style.visibility = 'hidden';
+    } else {
+        console.error("Found invalid play_banner value:", play_banner);
+    }
+    play_banner_button.style.visibility = 'hidden';
+
+}
+
 /* Runs a script given by page parameter s 
 
      * !!!!!!!   WARNING    !!!!!!!!
@@ -329,14 +410,14 @@ export async function run_from_params(){
  */
 function update_ui_game_status(game_status){
     
-    let play_button = document.querySelector("#tps-game-box .tps-play img");
+    let play_button_img = document.querySelector("#tps-game-box .tps-play img");
     let stop_button = document.querySelector("#tps-game-box .tps-stop img");
     let screen  = document.querySelector("#tps-game-box .tps-screen");
     
     
     if (game_status === "PLAY"){
-        if (play_button){
-            play_button.classList.add('tps-ctrl-pressed');
+        if (play_button_img){
+            play_button_img.classList.add('tps-ctrl-pressed');
         }
         if (stop_button){
             stop_button.classList.remove('tps-ctrl-pressed');
@@ -345,8 +426,8 @@ function update_ui_game_status(game_status){
             screen.classList.remove('tps-screen-stopped');
         }
     } else if (game_status === "STOP") {
-        if (play_button){
-            play_button.classList.remove('tps-ctrl-pressed');
+        if (play_button_img){
+            play_button_img.classList.remove('tps-ctrl-pressed');
         }
         if (stop_button){
             stop_button.classList.add('tps-ctrl-pressed');
@@ -407,7 +488,8 @@ export async function play_game(options){
     tps_pyscript.appendChild(script);
     await when(window, "py:done");
     console.log("Going to reload script...", the_options.s);
-    run(the_options);
+    the_options.nrun += 1;
+    await run(the_options);
     console.log("turtleps.js:  play_game() is DONE.");
 };
 
@@ -428,8 +510,7 @@ export async function reload (options){
     }
 
     const current_time = new Date().getTime();  // milliseconds since 1970
-    let the_options = Object.assign({}, DEFAULT_OPTIONS, options, {v_code:current_time}) 
-    
+    let the_options = Object.assign({}, DEFAULT_OPTIONS, options, {v_code:current_time});    
     await play_game(the_options);
     console.log("turtleps.js:  reload() is DONE.");
 };
@@ -452,7 +533,7 @@ export function reload_all (options){
     console.log('options:', options)
     let the_options = Object.assign({}, DEFAULT_OPTIONS, options, {v:current_time, 
                                                                    v_code: DEFAULT_OPTIONS.v_code})
-    
+    the_options.nrun += 1;
 
     console.log('the_options:', the_options)
     
@@ -508,16 +589,67 @@ function load_timestamp(what, current_time){
     let local_v;
     try {
         console.log("Loading ", what, " from local storage..");
-        local_v = window.localStorage.getItem(what);
-        if (local_v === null){
+        const local_v_raw = window.localStorage.getItem(what);
+        if (local_v_raw === null){
             console.log("Couldn't find ", what," in local storage");
             local_v = current_time;
+        } else {
+            local_v = Number(local_v_raw);
         }
     } catch (e){
         console.info("Failed to load ",what,". Reason:", e);
         local_v = current_time;
     }
     return local_v
+}
+
+/* failed attempt to rewrite config
+
+   note to myself: attempted to run a Python script to update files,
+   approach seemed to work  but apparently it was generating too many concurrent events
+*/
+async function config_overwrite_TODO(wrap, target_config, the_options){
+
+    console.log("!!!!! PROVA BEGIN");
+`
+    //console.debug("main", "element", element);
+    const loc = window.location.pathname.split('?')[0];
+    const cur_path = loc.substring(0, loc.lastIndexOf("/")+1);
+
+
+
+    console.log("!!!! updated_urls:")
+    
+    for (const [url, modname] of Object.entries(target_config["files"])){
+    
+    with open(modname, "w") as targetf:
+        if ".py" in url:
+            
+            nurl = "${cur_path}" + url.replace("{V_CODE}", target_config["files"]["{V_CODE}"]).replace("{V}", target_config["files"]["{V}"])
+            print("OVERWRITING...", modname, "with", nurl)
+            
+            response = await js.fetch(nurl)
+            if not response.ok:
+                print("ERROR! response.status:", response.status)
+            else:
+                targetf.write(await response.text())
+
+            print("DONE OVERWRITING", modname)
+`       
+    console.log("!!!!! PROVA END");
+}
+
+/*
+    @since 0.12.0
+*/
+function on_py_ready(){ 
+    const loading  = document.querySelector('#tps-game-box .tps-loading');
+    const screen   = document.querySelector('#tps-game-box .tps-screen');
+    
+    console.log('py:ready, updating ui game status...')
+    loading.style.visibility = 'hidden';
+    screen.classList.remove('tps-screen-loading');
+    update_ui_game_status("PLAY"); // TODO sync with module
 }
 
 
@@ -528,16 +660,17 @@ function load_timestamp(what, current_time){
 export async function run(options){
     
     let the_options = Object.assign({}, DEFAULT_OPTIONS, options);
-
-    console.log("Requested running: ", the_options.s, "   at timestamp: ", the_options.v_code);
+    
+    console.log( "Requested running: ", the_options.s, 
+                "\n- at timestamp: ",   the_options.v_code,
+                "\n- nrun:",            the_options.nrun);
     
     console.log("the_options:", the_options);
 
     const current_time = new Date().getTime();  // milliseconds since 1970
 
-    let local_v = load_timestamp('tps_v', current_time);
+    let local_v      = load_timestamp('tps_v',      current_time);
     let local_v_code = load_timestamp('tps_v_code', current_time);
-
     
     let html = /* html */ `
                 
@@ -545,8 +678,8 @@ export async function run(options){
                     <span class="tps-loading-message">
                         <img title="Loading.." width="28px" src="img/loading.svg"/>    
                     </span>
-                    
                 </div>
+                
                 <div class="tps-game-ctrl-panel">
                     <a class="tps-play tps-game-ctrl" href="#"><img title="Run the current script" src="img/play.svg" width="30px"></a>
                     <a class="tps-stop tps-game-ctrl" href="#"><img title="Stop the game" src="img/stop.svg" width="30px"></a>
@@ -562,6 +695,9 @@ export async function run(options){
                        width="30px">
                     </a>
                 </div>
+                <div class="tps-play-banner">
+                    <img title="Play!" width="200px" src="img/play.svg"/>
+                </div>
                 <svg class="tps-screen">
                 </svg>
     `;
@@ -575,10 +711,13 @@ export async function run(options){
         game_box.classList.add("tps-game-box");
     }
     
-    const loading = document.querySelector('#tps-game-box .tps-loading');
-    const screen = document.querySelector('#tps-game-box .tps-screen');
+    const loading  = document.querySelector('#tps-game-box .tps-loading');
+    const screen   = document.querySelector('#tps-game-box .tps-screen');
+    const play_banner_button = document.querySelector('#tps-game-box .tps-play-banner');
+    
     screen.classList.add("tps-screen-loading");
     loading.style.visibility = 'visible';
+    play_banner_button.style.visibility = 'hidden';
 
     if (game_area){
         if (the_options.sticky){
@@ -596,29 +735,27 @@ export async function run(options){
     }
     
     
-// ECMAScript 6 says it's evaluated only once
-    addEventListener('py:ready', () => 
-        {loading.style.visibility = 'hidden';
-         screen.classList.remove('tps-screen-loading');
-         update_ui_game_status("PLAY"); // TODO sync with module
-        });
+    // ECMAScript 6 says it's evaluated only once
+    addEventListener('py:ready', on_py_ready);
 
 
-    let v = determine_timestamp(the_options.v, local_v, current_time, the_options.cache_expiration);
-    console.log("Will use timestamp v=", v);
+    the_options.v = determine_timestamp(the_options.v, local_v, current_time, the_options.cache_expiration);
+    console.log("Will use timestamp v=", the_options.v);
 
-    let v_code = determine_timestamp(the_options.v_code, local_v_code, current_time, the_options.cache_expiration);
-    console.log("Will use timestamp v_code=", v_code);
+    the_options.v_code = determine_timestamp(the_options.v_code, local_v_code, current_time, the_options.cache_expiration);
+    console.log("Will use timestamp v_code=", the_options.v_code);
 
     try {
         console.log("Saving timestamp to local storage..");
-        window.localStorage.setItem("tps_v", v);
+        window.localStorage.setItem("tps_v", the_options.v);
         console.log("Saving code timestamp to local storage..");
-        window.localStorage.setItem("tps_v_code", v_code);
+        window.localStorage.setItem("tps_v_code", the_options.v_code);
         
     } catch (e){
         console.info("Failed to save timestamp. Reason:", e);
     }
+
+    
 
 
     let reload_button = document.querySelector("#tps-game-box .tps-reload");
@@ -639,12 +776,12 @@ export async function run(options){
     
     const script = document.createElement('script');
     script.setAttribute("type","py");
-    script.setAttribute("src", the_options.s + "?v=" + v_code);
+    script.setAttribute("src", the_options.s + "?v=" + the_options.v_code);
     
-    
+
     const xhttp = new XMLHttpRequest();
 
-    xhttp.onload = function() {
+    xhttp.onload = async function() {
         if (!(xhttp.readyState == 4 && xhttp.status == 200)){
             console.error(`TSP error fetching config: ${xhr.status}`);
             return;
@@ -652,11 +789,17 @@ export async function run(options){
         const config_json = this.response;
         console.log("Loaded pyscript config", config_json);
         
-        let target_config = {"files": {
-            '{V}' : String(v),
-            '{V_CODE}' : String(v_code),
-            }
-        };
+        for (const prop of Object.getOwnPropertyNames(tps_config)) {
+            delete tps_config[prop];
+        }
+
+        tps_config["tps"] = {};
+        tps_config["files"] = {
+                                '{V}' : String(the_options.v),
+                                '{V_CODE}' : String(the_options.v_code),
+                              };
+
+
         for (const [key1,val1] of Object.entries(config_json)){    
             if (key1 === "files"){
                 for (const [keyf,valf] of Object.entries(val1)){
@@ -666,14 +809,19 @@ export async function run(options){
                     } else {
                         valfp = keyf.split("/").slice(-1)[0];
                     }
-                    target_config["files"][keyf + '?v={V_CODE}'] = valfp;
+                    tps_config["files"][keyf + '?v={V_CODE}'] = valfp;
                 }
             } else {
-                target_config[key1] = val1;
+                tps_config[key1] = val1;
             }
         }
-        console.log("Created target_config: ", target_config);
-        script.setAttribute("config", JSON.stringify(target_config)); /// TODO
+
+        for (const [key,val] of Object.entries(the_options)){
+            tps_config["tps"]['{' + key + '}'] = val;
+        }
+
+        console.log("Created tps_config: ", tps_config);
+        script.setAttribute("config", JSON.stringify(tps_config)); /// TODO
         let tps_pyscript = document.getElementById("tps-pyscript");
         if (!tps_pyscript){
             tps_pyscript = document.createElement("section");
@@ -684,45 +832,55 @@ export async function run(options){
             console.log('Added tps-pyscript:',tps_pyscript);
         }
         
-        tps_pyscript.replaceChildren(script);
+        if (the_options.play_banner === 0){
+            await show_play_banner(the_options.play_banner, the_options.nrun);
+            tps_pyscript.replaceChildren(script);
+
+        } else {
+            tps_pyscript.replaceChildren(script);
+
+        }
+
+    
         console.log('Updated tps-pyscript:',tps_pyscript);
 
-        import("https://pyscript.net/releases/2025.3.1/core.js").then((pscore) => {
-                  
         
-        // The `hooks.main` attribute defines plugins that run on the main thread.
-        pscore.hooks.main.onReady.add((wrap, element) => {
-            console.log("main", "onReady");
-            console.debug("main", "wrap", wrap);
-            //console.debug("main", "element", element);
-            
-        });
-        
-        pscore.hooks.main.onBeforeRun.add(() => {
-            console.log("main", "onBeforeRun");
-        });
-        
-        pscore.hooks.main.codeBeforeRun.add('print("main", "codeBeforeRun")');
-        pscore.hooks.main.codeAfterRun.add('print("main", "codeAfterRun")');
-        pscore.hooks.main.onAfterRun.add(() => {
-            console.log("main", "onAfterRun");
-        });
+        import(`https://pyscript.net/releases/${PYSCRIPT_CORE_VERSION}/core.js`)
+        .then((pscore) => {
+            console.log("pscore:", pscore);
+            if (the_options.nrun === 1){
+                // The `hooks.main` attribute defines plugins that run on the main thread.
+                pscore.hooks.main.onReady.add(async (wrap, element) => {
+                    console.log("main", "onReady");
+                    console.debug("main", "wrap", wrap);
+                });
+                
+                pscore.hooks.main.onBeforeRun.add(() => {
+                    console.log("main", "onBeforeRun");
+                });
+                
+                pscore.hooks.main.codeBeforeRun.add('print("main", "codeBeforeRun")');
+                pscore.hooks.main.codeAfterRun.add('print("main", "codeAfterRun")');
+                pscore.hooks.main.onAfterRun.add(() => {
+                    console.log("main", "onAfterRun");
+                });
 
-        
-        
-        let tps_pyscript_core_css = document.getElementById('tps-pyscript-core-css');
-        if (!tps_pyscript_core_css){
-                tps_pyscript_core_css = document.createElement('link');
-                tps_pyscript_core_css.id='tps-pyscript-core-css';
-                tps_pyscript_core_css.href='https://pyscript.net/releases/' + PYSCRIPT_CORE_VERSION + '/core.css';
-                tps_pyscript_core_css.rel='stylesheet';
-                tps_pyscript_core_css.type='text/css';
-                (document.head||document.documentElement).appendChild(tps_pyscript_core_css);    
-                console.log("Added Pyscript core CSS version ", PYSCRIPT_CORE_VERSION,  tps_pyscript_core_css);
-         }
-            });
-        
+                
+                
+                let tps_pyscript_core_css = document.getElementById('tps-pyscript-core-css');
+                if (!tps_pyscript_core_css){
+                        tps_pyscript_core_css = document.createElement('link');
+                        tps_pyscript_core_css.id='tps-pyscript-core-css';
+                        tps_pyscript_core_css.href=`https://pyscript.net/releases/${PYSCRIPT_CORE_VERSION}/core.css`;
+                        tps_pyscript_core_css.rel='stylesheet';
+                        tps_pyscript_core_css.type='text/css';
+                        (document.head||document.documentElement).appendChild(tps_pyscript_core_css);    
+                        console.log("Added Pyscript core CSS version ", PYSCRIPT_CORE_VERSION,  tps_pyscript_core_css);
+                }
+            };
+        });
     }
+    
     xhttp.onerror = function(e){
         console.error("Couldn't fetch the config ", the_options.config_url);
         throw new Error(e);
@@ -731,7 +889,10 @@ export async function run(options){
     xhttp.open("GET", the_options.config_url); 
     xhttp.responseType = "json";
     xhttp.send();
-    await when(window, "py:done");
+    await when(window, "py:ready");
+    console.log("turtleps.js run(): py:ready()");
+    await when(window, "py:done");                                                
+    console.log("turtleps.js run() is DONE: script=", the_options.s, "\n - asyncio tasks can still be running...")
 };
 
 

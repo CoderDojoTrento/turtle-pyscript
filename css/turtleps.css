@@ -88,7 +88,6 @@ html {
     position:relative;
     min-width:400px;
     min-height:50px;
-
 }
 
 
@@ -212,14 +211,30 @@ h2.tps-script-title  {
     align-items: center;
 }
 
-.tps-loading-message {
-    
+.tps-loading-message {    
     position:absolute;
     top:0.8rem;
     left:2rem;
     font-size:1.5rem;
     font-weight:900
 }
+
+.tps-play-banner {
+    position: absolute;
+    top: 37px;
+    left: 3px;
+    background: #fafafa;
+    display:flex;
+    justify-content:center;
+    align-items: center;
+    border-style : none;
+    border-width : 3px;
+    margin:7px;
+    min-width: 400px;
+    min-height: 400px;
+    user-select: none;
+}
+
 
 @keyframes tps-spin { 
     100% { 

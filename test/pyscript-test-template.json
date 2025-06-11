@@ -13,6 +13,9 @@
         "js/turtleps.js"               : "turtleps"
       }
     },
-    "packages": ["pytest", "pytest-asyncio"]
+    "packages": ["pytest", "pytest-asyncio"],
+    "tps": {
+      
+    }
 
 }

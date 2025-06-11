@@ -1,5 +1,9 @@
 """ Danger forever with while / await
 
+**WARNING**: Going to work forever with `while`/`await` ..
+
+If you hit turtleps stop button it should actually stop without errors.
+
 """
 
 import sys
@@ -9,9 +13,6 @@ def eprint(*args, **kwargs):
 
 import asyncio 
 
-eprint("WARNING: Going to work forever with while /await..")
-eprint("")
-eprint("If you hit turtleps stop button it should actually stop without errors.")
 
 c = 0
 while True:

@@ -6,7 +6,8 @@ import json
 
 
 demo_paths = ['main.py'] + sorted([fpath for fpath in glob.glob("demos/*.py")]) 
-test_paths = sorted([fpath for fpath in glob.glob("test/uitest_*.py")])
+test_paths = sorted(   [fpath for fpath in glob.glob("test/uitest_*.py")]
+                     + [fpath for fpath in glob.glob("test/stresstest_*.py")] )
 
 
 print("Found demos paths", demo_paths)

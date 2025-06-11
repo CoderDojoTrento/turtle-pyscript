@@ -1,6 +1,11 @@
 """ Stop test
 
+**WARNING**: Going to work forever with `create_task`..
+
+If you hit turtleps stop button it should actually stop without errors.
+
 """
+
 import asyncio 
 
 import sys
@@ -9,9 +14,6 @@ def eprint(*args, **kwargs):
 
 
 async def main():
-    eprint("WARNING: Going to work forever with create_task..")
-    eprint("")
-    eprint("If you hit turtleps stop button it should actually stop without errors.")
 
     c = 0
     while True:
