@@ -462,7 +462,7 @@ def _version_url(url, v):
     else:
         prefix = ''
         
-    return pr._replace(query=pr.query + prefix + 'v=' + v).geturl()
+    return pr._replace(query=pr.query + prefix + 'v=' + str(v)).geturl()
 
 def create_clip(img):
     """
@@ -559,7 +559,7 @@ class Shape(object):
             #img.setAttributeNS(None, 'height', 20)
             #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
             
-            v = pyscript.config["files"]["{V}"]
+            v = pyscript.config["tps"]["v"]
             new_data = _version_url(data, v)
             
             img.setAttributeNS(None, 'href', new_data)
@@ -2278,8 +2278,8 @@ async def ge_init():
 
     # using our mirrored global config as unfortunately Pyscript doesn't support changing config between runs
     obm = tpsjs.tps_config.tps.as_object_map()
-    play_banner = obm["{play_banner}"]
-    nrun = obm["{nrun}"]
+    play_banner = obm["play_banner"]
+    nrun = obm["nrun"]
     if play_banner == 1:
         await tpsjs.show_play_banner(play_banner, nrun); 
 

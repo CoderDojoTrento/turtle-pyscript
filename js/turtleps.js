@@ -49,7 +49,7 @@ export let DEFAULT_OPTIONS = {  s: '',
                                 cache_expiration : DAY * 60,
                                 /**  for everything */
                                 v: 0,       
-                                v_code: 0,
+                                vc: 0,
                                 /** @since 0.12.0 */                              
                                 nrun : 1
                                 // mode: 'dev', // allowed: 'dev' or 'demo' // not neededd for now 
@@ -331,6 +331,7 @@ export async function run_from_params(){
 
     if (subdir === "demo"){
         the_options.refresh_buttons = false;
+        the_options.play_banner = 1;  // show play_banner at the end of ge_init
     } else if (subdir === "test"){
         the_options.config_url = "pyscript-test.json";
     }
@@ -501,7 +502,7 @@ export async function reload (options){
 
     console.log("turtleps.js:  reload(", options, ")");
     
-    let what = 'tps_v_code';
+    let what = 'tps_vc';
     try {
         console.log("Clearing ", what, " from local storage..");
         window.localStorage.removeItem(what);            
@@ -510,7 +511,7 @@ export async function reload (options){
     }
 
     const current_time = new Date().getTime();  // milliseconds since 1970
-    let the_options = Object.assign({}, DEFAULT_OPTIONS, options, {v_code:current_time});    
+    let the_options = Object.assign({}, DEFAULT_OPTIONS, options, {vc:current_time});    
     await play_game(the_options);
     console.log("turtleps.js:  reload() is DONE.");
 };
@@ -532,7 +533,7 @@ export function reload_all (options){
 
     console.log('options:', options)
     let the_options = Object.assign({}, DEFAULT_OPTIONS, options, {v:current_time, 
-                                                                   v_code: DEFAULT_OPTIONS.v_code})
+                                                                   vc: DEFAULT_OPTIONS.vc})
     the_options.nrun += 1;
 
     console.log('the_options:', the_options)
@@ -625,7 +626,7 @@ async function config_overwrite_TODO(wrap, target_config, the_options){
     with open(modname, "w") as targetf:
         if ".py" in url:
             
-            nurl = "${cur_path}" + url.replace("{V_CODE}", target_config["files"]["{V_CODE}"]).replace("{V}", target_config["files"]["{V}"])
+            nurl = "${cur_path}" + url
             print("OVERWRITING...", modname, "with", nurl)
             
             response = await js.fetch(nurl)
@@ -662,7 +663,7 @@ export async function run(options){
     let the_options = Object.assign({}, DEFAULT_OPTIONS, options);
     
     console.log( "Requested running: ", the_options.s, 
-                "\n- at timestamp: ",   the_options.v_code,
+                "\n- at timestamp: ",   the_options.vc,
                 "\n- nrun:",            the_options.nrun);
     
     console.log("the_options:", the_options);
@@ -670,7 +671,7 @@ export async function run(options){
     const current_time = new Date().getTime();  // milliseconds since 1970
 
     let local_v      = load_timestamp('tps_v',      current_time);
-    let local_v_code = load_timestamp('tps_v_code', current_time);
+    let local_vc = load_timestamp('tps_vc', current_time);
     
     let html = /* html */ `
                 
@@ -742,14 +743,14 @@ export async function run(options){
     the_options.v = determine_timestamp(the_options.v, local_v, current_time, the_options.cache_expiration);
     console.log("Will use timestamp v=", the_options.v);
 
-    the_options.v_code = determine_timestamp(the_options.v_code, local_v_code, current_time, the_options.cache_expiration);
-    console.log("Will use timestamp v_code=", the_options.v_code);
+    the_options.vc = determine_timestamp(the_options.vc, local_vc, current_time, the_options.cache_expiration);
+    console.log("Will use timestamp vc=", the_options.vc);
 
     try {
         console.log("Saving timestamp to local storage..");
         window.localStorage.setItem("tps_v", the_options.v);
         console.log("Saving code timestamp to local storage..");
-        window.localStorage.setItem("tps_v_code", the_options.v_code);
+        window.localStorage.setItem("tps_vc", the_options.vc);
         
     } catch (e){
         console.info("Failed to save timestamp. Reason:", e);
@@ -776,7 +777,7 @@ export async function run(options){
     
     const script = document.createElement('script');
     script.setAttribute("type","py");
-    script.setAttribute("src", the_options.s + "?v=" + the_options.v_code);
+    script.setAttribute("src", the_options.s + "?v=" + the_options.vc);
     
 
     const xhttp = new XMLHttpRequest();
@@ -794,11 +795,7 @@ export async function run(options){
         }
 
         tps_config["tps"] = {};
-        tps_config["files"] = {
-                                '{V}' : String(the_options.v),
-                                '{V_CODE}' : String(the_options.v_code),
-                              };
-
+        tps_config["files"] = {};
 
         for (const [key1,val1] of Object.entries(config_json)){    
             if (key1 === "files"){
@@ -809,7 +806,7 @@ export async function run(options){
                     } else {
                         valfp = keyf.split("/").slice(-1)[0];
                     }
-                    tps_config["files"][keyf + '?v={V_CODE}'] = valfp;
+                    tps_config["files"][keyf + '?v=' + String(the_options.vc)] = valfp;
                 }
             } else {
                 tps_config[key1] = val1;
@@ -817,7 +814,7 @@ export async function run(options){
         }
 
         for (const [key,val] of Object.entries(the_options)){
-            tps_config["tps"]['{' + key + '}'] = val;
+            tps_config["tps"][key] = val;
         }
 
         console.log("Created tps_config: ", tps_config);

@@ -18,18 +18,18 @@ from pyscript import config
 
 
 class VisualFrameTest(VisualTest):
-    def __init__(self, test_path, descr,v,v_code,*args):
+    def __init__(self, test_path, descr,v,vc,*args):
         iframe = document.createElement('iframe')
         #test_name = os.path.split(test_path)[1][:-3]
 
-        iframe.setAttribute('src', f"test.html?s={test_path}&navbar=false&sticky=true&show_desc=false&v={v}&v_code={v_code}" )
+        iframe.setAttribute('src', f"test.html?s={test_path}&navbar=false&sticky=true&show_desc=false&v={v}&v_code={vc}" )
         iframe.setAttribute('width', 400 + 30)
         iframe.setAttribute('height', 400 + 100)
         iframe.style.overflowX = 'hidden'
 
         the_title, the_descr = tpsjs.sep_title_desc(test_path, descr)
         
-        super().__init__(f'<a href="test.html?s={test_path}&v={v}&v_code={v_code}" target="_blank" >{the_title}</a>',
+        super().__init__(f'<a href="test.html?s={test_path}&v={v}&v_code={vc}" target="_blank" >{the_title}</a>',
                          the_descr,  
                          iframe, 
                          width=420,
@@ -49,8 +49,6 @@ i = 0
 for test_path in config['files']:
     print("Found test_path:", test_path)
 
-    test_path = test_path.replace("{V}", config["files"]["{V}"])
-    test_path = test_path.replace("{V_CODE}", config["files"]["{V_CODE}"])
 
     
     if test_path.startswith('test/uitest_'):
@@ -60,8 +58,8 @@ for test_path in config['files']:
             doc = ''
         VisualFrameTest(test_path.split('?')[0], 
                         doc,
-                        config["files"]["{V}"], 
-                        config["files"]["{V_CODE}"])
+                        config["tps"]["v"], 
+                        config["tps"]["vc"])
         i += 1
         #if i == 2: break
         
