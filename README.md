@@ -13,9 +13,9 @@ in a real CPython environment with Pyodide port.
 
 **STORYTELLING DEMO**: https://coderdojotrento.github.io/turtle-pyscript/demo.html?s=demo/storytelling.py
 
-**ALL TESTS WITH MICROPYTHON (fast loading, some things may break)**: https://coderdojotrento.github.io/turtle-pyscript/test.html?s=test/uitests_all.py?t=mpy
+**ALL TESTS WITH MICROPYTHON (fast loading, some things may break)**: https://coderdojotrento.github.io/turtle-pyscript/test.html?s=test/uitests_all.py&t=mpy
 
-**ALL TESTS WITH PYODIDE (slower to load, but more likely to work)**: https://coderdojotrento.github.io/turtle-pyscript/test.html?s=test/uitests_all.py?t=py
+**ALL TESTS WITH PYODIDE (slower to load, but more likely to work)**: https://coderdojotrento.github.io/turtle-pyscript/test.html?s=test/uitests_all.py&t=py
 
 
 **Turtle API:** We try to be faithful to original api as much as we can. Currently we support most important things and it should work. Tested successfully in a high school classroom. 
