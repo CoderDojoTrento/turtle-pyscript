@@ -7,9 +7,27 @@ from pyscript.js_modules import marked
 from pyscript.js_modules import turtleps as tpsjs
 
 
+    
+if "pyodide" in sys.modules:
+    SYSTEM = "pyodide"
+elif sys.implementation.name == "micropython":
+    SYSTEM = "micropython"
+else:
+    raise Exception("Unknown python platform!")
+
+
+
+
 SVGNS = 'http://www.w3.org/2000/svg'
 
-cur_fname = lambda n=0: sys._getframe(n + 1).f_code.co_name
+if SYSTEM == "micropython":
+    cur_fname = lambda n=0: "Can't get current function name in micropython"
+else:
+    cur_fname = lambda n=0: sys._getframe(n + 1).f_code.co_name
+
+def get_fun_doc(f):
+    return f.__doc__ if SYSTEM != 'micropython' else "Can't parse function doc with micropython"
+
 
 def add_classes(obj, cs):
     """cs: a string of space-separated classes"""
@@ -80,13 +98,21 @@ class VisualTest:
 
 
 class VisualTestSuite(VisualTest):
-    def __init__(self, module, itest_area=None):
-        """ Call it with sys.modules[__name__] """        
 
-        self.module = module
-        title, descr = tpsjs.sep_title_desc('', self.module.__doc__)
+
+    # Made it like this to have minimum common denominator working in micropython:
+    # Note in micropython:
+    #    __name__: "__main__" can't be found in sys.modules
+    #    __file__:   not defined
+    #    os.getcwd(): "/"
+    #    __init__: can't be async
+
+    def __init__(self, title, desc, itest_area=None):
+        """ Call it with:
+            title , desc = await tpsjs.fetch_title_desc('test/uitests_all.py')  
+        """        
         VisualTest(title,
-                   descr,
+                   desc,
                    document.createElement('div'),
                    width='100%',
                    itest_area=itest_area,

@@ -56,7 +56,7 @@ class VisualClickTest(VisualTest):
         svg.setAttribute('width', width)
         svg.setAttribute('height', height)
         svg.innerHTML = f()
-        super().__init__(f.__name__, f.__doc__,  svg, *args)
+        super().__init__(f.__name__, get_fun_doc(f),  svg, *args)
         svg_el = document.getElementById(f'el{N}')
         svg_el.onclick = click
 
@@ -195,7 +195,8 @@ def test_vectorialize_image_svg():
     svg.setAttribute('width', width)
     svg.setAttribute('height', height)
     svg.innerHTML = s
-    VisualTest(f.__name__, f.__doc__,  svg)
+    
+    VisualTest(f.__name__, get_fun_doc(f),  svg)
     svg_el = document.getElementById(f'el{N}')
     svg_el.onclick = click
 
@@ -278,13 +279,13 @@ dino.svg.onclick = click_dino
 
 
 """
-
-VisualTestSuite(sys.modules[__name__])
-
+s = 'test/uitests_click.py'
+title , desc = await tpsjs.fetch_title_desc(s)
+VisualTestSuite(title, desc)
 
 
 image_gif_tests = [f for name, f 
-                     in inspect.getmembers(sys.modules[__name__], inspect.isfunction)
+                     in inspect.getmembers('uitests_click', inspect.isfunction)
                      if name.startswith('test_image')]
 
 for t in image_gif_tests:

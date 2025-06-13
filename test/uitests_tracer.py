@@ -3,6 +3,8 @@
 Each row shows:
 original svg -> original image canvas rendition -> traced svg silohuette 
 
+## ZOOM OUT TO FIT ALL IMAGES
+
 """
 
 import sys 
@@ -51,8 +53,8 @@ images =  ["img/ch-archeologist-e.gif",
 ]
 
 
-
-VisualTestSuite(sys.modules[__name__])
+title , desc = await tpsjs.fetch_title_desc('test/uitests_tracer.py')
+VisualTestSuite(title, desc)
 
 i = 0
 for imm in images:

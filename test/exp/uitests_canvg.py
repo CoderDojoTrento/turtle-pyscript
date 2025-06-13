@@ -19,7 +19,6 @@ from pyscript.js_modules import Canvg
 #tps._tracing = True
 tps._tracing = False
 
-cur_fname = lambda n=0: sys._getframe(n + 2).f_code.co_name
 
 def draw_circle(canvas, x, y, color):
     ctx = canvas.getContext('2d');
@@ -70,7 +69,7 @@ async def make_test(t, width=None, height=None):
     
     wcanvas = create_wcanvas(width, height)
     
-    wcanvas._title.textContent = cur_fname()
+    wcanvas._title.textContent = cur_fname(1)
       
     ctx = wcanvas._canvas.getContext("2d");
     
@@ -179,7 +178,8 @@ dino.shape(idino)
 dino.shapesize(0.7,0.7)
 dino.goto(100,0)
 
-VisualTestSuite(sys.modules[__name__])
+title , desc = await tpsjs.fetch_title_desc('test/uitests_canvg.py')
+VisualTestSuite(title, desc)
 
 
 await test_replicate_canvg_gif_verbatim_no_include_defs_no_transpose()

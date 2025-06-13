@@ -8,6 +8,7 @@ doesn't want to draw <pre><image></pre> elements :-/
 
 from turtleps import *
 import turtleps as tps
+from tps_testing import *
 import math
 import inspect 
 
@@ -17,8 +18,6 @@ from pyscript.js_modules import Canvg
 #tps._debugging = True
 #tps._tracing = True
 tps._tracing = False
-
-cur_fname = lambda n=0: sys._getframe(n + 2).f_code.co_name
 
 
 import js
@@ -102,7 +101,7 @@ async def make_test(s):
     tps._info('size=', size)
     wcanvas = create_wcanvas()
 
-    wcanvas._title.textContent = cur_fname()
+    wcanvas._title.textContent = cur_fname(1)
       
     ctx = wcanvas._canvas.getContext("2d");
     

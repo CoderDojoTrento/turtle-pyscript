@@ -5,7 +5,7 @@
 Turtle graphics in the browser with [Pyscript](https://pyscript.net/)!
 
 Since we are using Pyscript, _no_ server side is needed: _all_ python code runs entirely in the browser 
-in a real CPython environment. 
+in a real CPython environment with Pyodide port.
 
 **STATUS: BETA**
 
@@ -13,7 +13,9 @@ in a real CPython environment.
 
 **STORYTELLING DEMO**: https://coderdojotrento.github.io/turtle-pyscript/demo.html?s=demo/storytelling.py
 
-**ALL TESTS**: https://coderdojotrento.github.io/turtle-pyscript/test.html?s=test/uitests_all.py
+**ALL TESTS WITH MICROPYTHON (fast loading, some things may break)**: https://coderdojotrento.github.io/turtle-pyscript/test.html?s=test/uitests_all.py?t=mpy
+
+**ALL TESTS WITH PYODIDE (slower to load, but more likely to work)**: https://coderdojotrento.github.io/turtle-pyscript/test.html?s=test/uitests_all.py?t=py
 
 
 **Turtle API:** We try to be faithful to original api as much as we can. Currently we support most important things and it should work. Tested successfully in a high school classroom. 
@@ -23,7 +25,7 @@ Most noticeable problems:
 - movements are currently always immediate, [see issue about concurrency](https://github.com/CoderDojoTrento/turtle-pyscript/issues/8).
 - Stamp is currently buggy ([see issue](https://github.com/CoderDojoTrento/turtle-pyscript/issues/13))
 - There is noticeable lag ([see issue](https://github.com/CoderDojoTrento/turtle-pyscript/issues/18)) if you have the pen down, to prevent it keep calling `color('yellow')`
-
+- We only support Pyodide interpreter, Micropython is faster to load but lacks many Python features so we don't guarantee full support ([see issue](https://github.com/CoderDojoTrento/turtle-pyscript/issues/20))
 
 **Game engine**: We also provide an experimental `Sprite` API built on top of `Turtle` which is in flux and subject to change.
 

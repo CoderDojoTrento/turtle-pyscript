@@ -4,10 +4,10 @@
 """
 import sys 
 import os
-import ast
-from pyodide.ffi import create_proxy
+from pyscript.ffi import create_proxy
 from pyscript import document, window, config, fetch
 from tps_testing import *
+import tps_testing
 from pyscript import config 
 
 
@@ -18,48 +18,48 @@ from pyscript import config
 
 
 class VisualFrameTest(VisualTest):
-    def __init__(self, test_path, descr,v,vc,*args):
+    def __init__(self, test_path, title, descr,v,vc,t,**args):
         iframe = document.createElement('iframe')
         #test_name = os.path.split(test_path)[1][:-3]
 
-        iframe.setAttribute('src', f"test.html?s={test_path}&navbar=false&sticky=true&show_desc=false&v={v}&v_code={vc}" )
+        iframe.setAttribute('src', f"test.html?s={test_path}&navbar=false&sticky=true&show_desc=false&show_options=false&t={t}&v={v}&v_code={vc}" )
         iframe.setAttribute('width', 400 + 30)
         iframe.setAttribute('height', 400 + 100)
         iframe.style.overflowX = 'hidden'
-
-        the_title, the_descr = tpsjs.sep_title_desc(test_path, descr)
         
-        super().__init__(f'<a href="test.html?s={test_path}&v={v}&v_code={vc}" target="_blank" >{the_title}</a>',
-                         the_descr,  
+        super().__init__(f'<a href="test.html?s={test_path}&t={t}&v={v}&v_code={vc}" target="_blank" >{title}</a>',
+                         descr,
                          iframe, 
                          width=420,
                          title_level=2,
-                         *args)
+                         **args)
+        
         self.test_box.style.minHeight = "550px"
         self.test_box.style.overflowX = "hidden"
         self.visual_wrapper.style.minHeight = "520px"
         self.visual_wrapper.style.overflowX = 'hidden'
 
-VisualTestSuite(sys.modules[__name__])
 
+title , desc = await tpsjs.fetch_title_desc('test/uitests_all.py')  
+VisualTestSuite(title, desc)
 
 print('list', list(config['files']))
 
-i = 0
-for test_path in config['files']:
-    print("Found test_path:", test_path)
+fixed_test_paths = [tp.split('?')[0] for tp in config['files'] if tp.startswith('test/uitest_')]
+fixed_test_paths.sort()
 
+i = 0        
 
-    
-    if test_path.startswith('test/uitest_'):
-        data = await fetch(test_path).text()
-        doc = ast.get_docstring(ast.parse(data))
-        if not doc:
-            doc = ''
-        VisualFrameTest(test_path.split('?')[0], 
-                        doc,
+for fixed_test_path in fixed_test_paths:
+        print("Found test_path:", fixed_test_path)
+        data = await fetch(fixed_test_path).text()
+        
+        title, desc = await tpsjs.fetch_title_desc(fixed_test_path);
+        VisualFrameTest(fixed_test_path, 
+                        title,
+                        desc,
                         config["tps"]["v"], 
-                        config["tps"]["vc"])
+                        config["tps"]["vc"],
+                        config["tps"]["t"])
         i += 1
         #if i == 2: break
-        

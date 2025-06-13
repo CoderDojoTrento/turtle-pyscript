@@ -8,15 +8,27 @@
 
 print("TPS: Loading turtleps.py")
 
+import sys
+print(f"SYSTEM: {sys.implementation.name} {'.'.join(map(str, sys.implementation.version[:3]))} (python {'.'.join(map(str, sys.version_info[:3]))})" )
+print('system', sys.version)
+
+# in pyodide:      SYSTEM: cpython 3.12.7 (python 3.12.7)
+# in micropython:  SYSTEM: micropython 1.24.1 (python 3.4.0)
+
+if "pyodide" in sys.modules:
+    SYSTEM = "pyodide"
+elif sys.implementation.name == "micropython":
+    SYSTEM = "micropython"
+else:
+    raise Exception("Unknown python platform!")
+
+print("Detected system:", SYSTEM)
 
 import re
 import math
 import asyncio
-import sys
-import importlib
+
 import os
-from enum import Enum
-from urllib.parse import urlparse
 
 import js
 from js import console
@@ -38,6 +50,7 @@ def _debug(*args, c=False):
             console.log("TPS DEBUG:", *args)
         else:
             print("TPS DEBUG:", *args)
+
 def _trace(*args, c=False):
     if _tracing:
         if c:
@@ -56,7 +69,7 @@ def _warn(*args, c=False):
     if c:
         console.warn("TPS WARN:", *args)
     else:
-        print("TPS WARN", file=sys.stderr, *args)
+        print("TPS WARN", *args, file=sys.stderr)
 
 def _error(*args, c=False):
     """
@@ -65,7 +78,7 @@ def _error(*args, c=False):
     if c:
         console.error("ERROR:", *args)
     else:
-        print("ERROR:", file=sys.stderr, *args)
+        print("ERROR:", *args, file=sys.stderr)
 
 
 
@@ -101,28 +114,9 @@ class CDTNRuntimeError(CDTNException):
     """
     pass
 
-_info("- all tasks:")
-for t in asyncio.all_tasks():
-    c = t.get_coro()
-    _info("  Coroutine:", c.__name__ if c else 'None')
-    _info(" ", t)
 
-def exception_handler(loop, context):
-    """
-    To prevent stop related errors 
-    @since 0.10.0
-    """
-    exception = context['exception']
-    message = context['message']
-    tps._info(f'TPS EXCEPTION HANDLER: Task failed, msg={message}, exception={exception}')
-
-_loop = asyncio.get_running_loop()
-# set the exception handler
-_loop.set_exception_handler(exception_handler)
-
-
-
-class Resource(Enum):
+# note: not Enum as it's not supported in micropython
+class Resource:
     """
     Simple class to model a resource status
 
@@ -134,7 +128,8 @@ class Resource(Enum):
     LOADED = 1
     FAILED = 2
 
-class GameStatus(Enum):
+# note: not Enum as it's not supported in micropython
+class GameStatus:
     """ 
         PLAY is normal status, simply means turtleps module is loaded
     
@@ -157,24 +152,44 @@ IMG_WARNING = "img/warning.svg"
 @since 0.9.0
 """
 
-try:
+def exception_handler(loop, context):
+    """
+    To prevent stop related errors 
+    @since 0.10.0
+    """
+    exception = context['exception']
+    message = context['message']
+    _info(f'TPS EXCEPTION HANDLER: Task failed, msg={message}, exception={exception}')
+
+if SYSTEM == "micropython":
+    _loop = asyncio.get_event_loop()  # deprecated but micropython only supports this
+else:
+    _loop = asyncio.get_running_loop()
+
+# set the exception handler
+_loop.set_exception_handler(exception_handler)
+
+
+if SYSTEM !=  'micropython':
     from typing import Awaitable
     from uuid import uuid4
-    _system = 'pyodide'
-except ImportError as ie:
-    try:
-        from micropython import const
-        _system = 'micropython'
-        _info("DETECTED MICROPYTHON, PUTTING SHIMS...")
-    except:
-        raise ie
-    
+    from importlib import reload as importlib_reload
+    from urllib.parse import urlparse
+    from pprint import pprint
+    from traceback import print_exception
+else:
+    _info("DETECTED MICROPYTHON, PUTTING SHIMS...")
+
+    _info("- replacing traceback print_exception")
+
+    def print_exception(e, file=sys.stderr):
+        sys.print_exception(e, file)
+
     _info("- replacing uuid for micropython shim")
-    
-    import os
+
     import ubinascii
     from random import randint
-    
+
     def urandom(n):
         return bytes(randint(0, 255) for _ in range(n))
 
@@ -203,7 +218,7 @@ except ImportError as ie:
         random[6] = (random[6] & 0x0F) | 0x40
         random[8] = (random[8] & 0x3F) | 0x80
         return UUID(bytes=random)
-    
+
 
     _info("- replacing typing.Awaitable with a shim")
 
@@ -212,7 +227,26 @@ except ImportError as ie:
 
     class Awaitable:
         pass
-    
+
+
+    _info("- replacing asyncio.create_task with a shim")
+
+    _orig_create_task = asyncio.create_task
+
+    def _turtleps_create_task(coro):
+        """ in theory there is no need to collect reference as micropython works differently
+            but: since micropython doesn't have asyncio.all_tasks() we need references anyway
+            to allow stopping game 
+            
+            @since 0.12.0
+        """
+        _info("turtleps_create_task shim was called")
+        t = _orig_create_task(coro)
+        _running_tasks.add(t)
+        return t
+
+    asyncio.create_task = _turtleps_create_task
+
 
     _info("- replacing asyncio.gather with a shim")
 
@@ -221,16 +255,130 @@ except ImportError as ie:
     unless you wrap the thing with a create_task
     """
 
-    orig_gather = asyncio.gather
+    _orig_gather = asyncio.gather
 
-    def turtleps_gather(*awaitables, return_exceptions=False):
-        _debug("turtleps_gather shim was called")
-        #note: no need to collect reference as micropython works differently
-        return asyncio.create_task(orig_gather(*awaitables, return_exceptions=return_exceptions))
+    def _turtleps_gather(*awaitables, return_exceptions=False):
+        """ In theory there ino need to collect reference as micropython works differently
+            but we need it collected by patched _turtleps_create_task, see above
+        """
+        _info("turtleps_gather shim was called")
+        return asyncio.create_task(_orig_gather(*awaitables, return_exceptions=return_exceptions))
 
-    asyncio.gather = turtleps_gather
+    asyncio.gather = _turtleps_gather
 
-    # MICROPYTHON SHIMS END -------------------------------------------------
+
+    _info("- assigning to asyncio.all_tasks a NON WORKING shim")
+
+    def turtleps_all_tasks():
+        _info("turtleps_all_tasks shim was called, returning _running_tasks")
+
+        loop = asyncio.get_event_loop()
+        #tasks = loop.runq + loop.waitq   #runq attribute doesn't exist :-/ 
+        return _running_tasks
+
+    asyncio.all_tasks = turtleps_all_tasks
+
+
+    _info("- replacing importlib_reload with a totally dummy non-working shim")
+    def importlib_reload(module):
+        n = module.__name__
+        #print("dir(module): ", dir(module))
+        #print("module.__name__: ", module.__name__)
+        #print("str(module): ", n)
+        #sys.modules[str(module)].myfunc()
+        print("sys.modules", sys.modules)
+        del sys.modules[n]
+        exec('import ' + n, {} )
+
+    _info("- replacing urlparse with JS shim")
+
+
+    class ParseResult:
+        def _replace(self, **args):
+            # TODO quick & dirty implementation
+            
+            ret = ParseResult()
+            ret.scheme = self.scheme
+            ret.netloc = self.netloc
+            ret.path = self.path
+            ret.query = self.query
+            ret.fragment = self.fragment
+
+            for k,v in args.items():
+                if k == 'scheme':  # there is no __setattr__ in micropython
+                    self.scheme = v
+                elif k == 'netloc':
+                    self.netloc = v
+                elif k == 'path':
+                    self.path = v
+                elif k == 'query':
+                    self.query = v
+                elif k == 'fragment':
+                    self.fragment = v
+                else:
+                    raise ValueError(f"Unsupported param: {k}")
+            return ret
+
+        def geturl(self):
+            sc = self.scheme + '://' if self.scheme else ''
+            q = '?' + self.query if self.query else ''
+            f = '#' + self.fragment if self.fragment else ''
+            return sc + self.netloc + self.path + q + f
+
+    def urlparse(url):
+        js.console.log('urlparse url:',url);
+        # see https://dmitripavlutin.com/parse-url-javascript/
+        # and https://developer.mozilla.org/en-US/docs/Web/API/URL
+
+        #urlparse("scheme://netloc/path;parameters?query#fragment")
+        #ParseResult(scheme='scheme', netloc='netloc', path='/path;parameters', params='',
+        #query='query', fragment='fragment')
+
+        mock = 'http://MOCK/'
+        mocked = False
+
+        pr = ParseResult()
+        pr.scheme = ''
+        pr.netloc = ''
+        pr.path = ''
+        pr.query = ''
+        pr.fragment = ''
+
+        if not url.startswith('http'):
+            mocked = True
+            # adding mock http so javascript doesn't complain
+            nurl = mock + url
+
+        try: 
+            #python parse seems a lot more lenient
+            jpr = js.URL.new(nurl)
+        except:
+            return pr        
+
+        pr.scheme = jpr.protocol[:-1]  # js includes :
+        pr.netloc = jpr.hostname
+
+        if mocked:
+            pr.path = jpr.pathname[1:]  # no leading /
+        else:
+            pr.path = jpr.pathname
+
+        pr.query = jpr.search
+        pr.fragment = jpr.hash
+
+        if mocked:
+            pr.scheme = ''
+            pr.netloc = ''
+            
+        return pr
+
+
+
+    _info("- replacing pprint with a shabby shim")
+
+    def pprint(obj):
+        print(repr(obj))
+
 
 
 
@@ -247,16 +395,22 @@ def _schedule_task(awaitable):
     def clean_task(t):
         if t in _running_tasks:
             _running_tasks.remove(t)
-            
-    if _system != "micropython" :
+
+    if SYSTEM != "micropython":
         _running_tasks.add(t)
         t.add_done_callback(clean_task) # consider stop
     
     return t
 
-import pprint
-_info('Received pyscript.config:', pprint.pprint(pyscript.config))
 
+_info('Received pyscript.config:', pprint(pyscript.config))
+
+if SYSTEM != "micropython":
+    _info("- all tasks:")
+    for t in asyncio.all_tasks():
+        c = t.get_coro()
+        _info("  Coroutine:", c.__name__ if c else 'None')
+        _info(" ", t)
 
 
 #__pragma__ ('skip')
@@ -294,8 +448,15 @@ class Vec2D(tuple):
        |a| absolute value of a
        a.rotate(angle) rotation
     """
-    def __new__(cls, x, y):
-        return tuple.__new__(cls, (x, y))
+     # micropython lacks __new__, see https://docs.micropython.org/en/latest/genrst/core_language.html#when-inheriting-native-types-calling-a-method-in-init-self-before-super-init-raises-an-attributeerror-or-segfaults-if-micropy-builtin-method-check-self-arg-is-not-enabled
+     # TODO I bet there is a simpler way to handle it
+    if SYSTEM == 'micropython':
+        def __init__(self, x, y):
+            super().__init__((x, y))
+    else:  
+        def __new__(cls, x, y):
+            return tuple.__new__(cls, (x, y))
+
     def __add__(self, other):
         return Vec2D(self[0]+other[0], self[1]+other[1])
     def __mul__(self, other):
@@ -457,11 +618,11 @@ def _version_url(url, v):
         return url
     
     # url is relative, we can manage it
+    
+    prefix = ''
     if pr.query:
-        prefix = '&'
-    else:
-        prefix = ''
-        
+        q += pr.query + '&'
+
     return pr._replace(query=pr.query + prefix + 'v=' + str(v)).geturl()
 
 def create_clip(img):
@@ -2144,23 +2305,35 @@ def ge_stop():
             _info(f"- {el.id}")
             el.onclick = None
     
+    #if SYSTEM == 'micropython':
+    #    loop = asyncio.get_event_loop()
+    #    #loop.stop() # doesn't exist (but it's in the docs...)
+    #    loop.close()
+    
+
     # kill active asyncio Tasks except current one.
     if asyncio.Task:
+        _info("Going to cancel tasks...")
         i = 0
         ct = asyncio.current_task()
+        _debug("ct:", ct)
         for task in asyncio.all_tasks():
-            c = task.get_coro()
-            cn = c.__name__ if c else ''
-            
-            if task.get_name() == ct.get_name(): # can only hope they are ordered in some meaninful way
-                _info(f"- found current task, skipping: {task}")
-            #elif cn == 'eval_code_async':
-            #    _info(f"- found Pyodide< eval_code_async task, skipping: {task}")
-            else:
+            _debug("task:", task)
+            to_cancel = True
+            if SYSTEM != "micropython":
+                #note:  Pyodide eval_code_async task coro.__name__ are called  'eval_code_async'
+                c = task.get_coro()
+                cn = c.__name__ if c else ''
+                if task.get_name() == ct.get_name(): # can only hope they are ordered in some meaninful way
+                    _info(f"- found current task, skipping: {task}")
+                    to_cancel = False
+            if to_cancel:
                 _info(f'- found task, calling cancel(): {task}')
                 try:
-                    
-                    task.cancel("TPS-STOPEX: Stopping the game...")
+                    if SYSTEM == "micropython":
+                        task.cancel()  # doesn't support arg
+                    else:
+                        task.cancel("TPS-STOPEX: Stopping the game...") 
                 except Exception as ex:
                     _error(f"Task kill failed: {ex}")
             i += 1
@@ -2174,6 +2347,7 @@ def ge_stop():
 
     # sys.exit("TPS Stopped interpreter!") # NO, gives more trouble than anything..
 
+#TODO does anybody uses skip_reload useful?
 def ge_reset(skip_reload=()):
     """
     @since 0.10.0
@@ -2209,17 +2383,23 @@ def ge_reset(skip_reload=()):
             else:    
                 to_reload.append((n,m))
     to_reload.sort(key=lambda t : t[0])
+    if SYSTEM == "micropython":
+        print("Detected micropython, repatching asyncio module with original functions")
+        asyncio.create_task = _orig_create_task
+        asyncio.gather = _orig_gather
+        
     to_skip.sort(key=lambda t : t[0])
     print(f"pyscript_files to SKIP:  {[n for n,m in to_skip]}")
     print(f"pyscript_files to RELOAD: {[n for n,m in to_reload]}")
     
     for n,m in to_reload:
         print('Reloading Python module...', m)    
-        importlib.reload(m)
+        importlib_reload(m)
         
         
     kept_stuff = []
     cleared_stuff = []
+    
     for g in sorted(list(globals())):
         
         if g.startswith('__'):
@@ -2277,11 +2457,15 @@ async def ge_init():
             _error(fail)
 
     # using our mirrored global config as unfortunately Pyscript doesn't support changing config between runs
-    obm = tpsjs.tps_config.tps.as_object_map()
+    if SYSTEM == 'pyodide':
+        obm = tpsjs.tps_config.tps.as_object_map()
+    else:
+        obm = tpsjs.tps_config.tps
+ 
     play_banner = obm["play_banner"]
-    nrun = obm["nrun"]
+    r = obm["r"]
     if play_banner == 1:
-        await tpsjs.show_play_banner(play_banner, nrun); 
+        await tpsjs.show_play_banner(play_banner, r); 
 
     _info("- ge_init is done!")
 

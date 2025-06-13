@@ -3,6 +3,8 @@
         "turtleps.py": "",
         "demo/storytelling.py": "",
         "test/tps_testing.py": "",
+        "test/upytest.py": "upytest.py",
+        "test/stresstest_async.py": "",
         "test/stresstest_forever.py": "",
         "test/stresstest_forever_await.py": "",
         "test/stresstest_forever_await_fun.py": "",
@@ -11,7 +13,6 @@
         "test/uitest_async_gather.py": "",
         "test/uitest_async_stop.py": "",
         "test/uitest_async_stop_bad.py": "",
-        "test/uitest_async_stress.py": "",
         "test/uitest_background_all.py": "",
         "test/uitest_background_empty.py": "",
         "test/uitest_background_swap.py": "",
@@ -42,9 +43,6 @@
             "js/turtleps.js": "turtleps"
         }
     },
-    "packages": [
-        "pytest",
-        "pytest-asyncio"
-    ],
+    "packages": [],
     "tps": {}
 }

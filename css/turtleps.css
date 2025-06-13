@@ -46,11 +46,7 @@ html {
     font-weight: 400;
     font-size: 1.5em;
     line-height: 2em;
-    white-space: nowrap;   
 }
-
-
-
 
 #tps-navbar {
    background-color: #000000;
@@ -68,8 +64,7 @@ html {
 }
 
 .tps-menu-header {
-    margin-left:40px;
-    margin-right:5px;
+    margin-right:10px;
     color:white;
 }
 
@@ -137,7 +132,7 @@ h2.tps-script-title  {
     display: flex;
     justify-content: center;
     align-items:center;
-    margin-top:10%;
+    margin-top:1%;
     flex-wrap: wrap;
 }
 
@@ -284,4 +279,45 @@ h2.tps-script-title  {
     ) 1 ;
     border-color : #999f;
     border-radius:10px;
+}
+
+
+#tps-options-box {
+    display:flex;
+    justify-content:center;
+    min-width:100%;
+    background-color:#f6f6f6;
+    border-color:#c9c8c8;
+    border-style:solid;
+}
+
+
+#tps-options-box > div{
+    display:flex;
+    justify-content:flex-start;
+    min-width:65%;
+    align-items:flex-start;
+    padding:1rem;
+}
+
+#tps-options-box .tps-intepreter {
+    display:grid;
+    grid-gap: 5px;
+    align-items:flex-start;
+    grid-template-columns: 10% 17% 75%;
+    min-width:100%;
+}
+
+#tps-options-box input {
+    cursor: pointer;
+}
+
+#tps-options-box label a {
+    word-break:break-word;
+    text-decoration: none;
+    color: inherit;
+}
+
+#tps-options-box input:checked+label{
+    font-weight:bold;
 }

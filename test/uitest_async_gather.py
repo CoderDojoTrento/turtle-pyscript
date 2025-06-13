@@ -2,7 +2,14 @@
 
 Shows complex event management with asyncio.gather primitive 
 
-It should be stoppable and replayable without problems.
+**in pyodide (default):** It should be stoppable and replayable without problems
+
+**in micropython:**  
+
+- if you stop _before_ Mr Egg ends the fall, everything behaves as expected
+- if you stop _after_ Mr Egg ends the fall, then the `move_ada` task events are unregistered 
+but function is not stopped. This is strange because in the example we do properly catch Mr Egg exception 
+
 """
 
 
@@ -15,8 +22,8 @@ import sys
 tps._info('python version: ', sys.version)
 
 
-tps._debugging = False
-#tps._debugging = True
+#tps._debugging = False
+tps._debugging = True
 #tps._tracing = True
 tps._tracing = False
 
@@ -53,7 +60,7 @@ bob.shape("arrow")
 egg.shape("triangle")
 
 ada.goto(100,0)
-bob.goto(0,100)
+bob.goto(0,0)
 egg.goto(-100,0)
 
 async def click_ada(event):
@@ -82,6 +89,8 @@ wt = 0.02
 async def move_ada():
 
     while True:
+        await asyncio.sleep(0.02)
+
         # workaround for lag:  https://github.com/CoderDojoTrento/turtle-pyscript/issues/18 
         ada.color('black') 
 
@@ -91,8 +100,7 @@ async def move_ada():
             ada.left(5)
         if "ArrowRight" in keys:
             ada.right(5)
-
-        await asyncio.sleep(0.02)  
+          
 
 ada.say("Please click me!", 1)
 
@@ -115,6 +123,10 @@ tps._info("gather in progress: ", g)
 try:
     await g
 except Exception as e:
-    print("TEST: Caught gather exception ", e)
-
+    print("TEST: Caught gather Exception descendant:")
+    print_exception(e, file=sys.stdout)
+    
+except BaseException as e:
+    print("TEST: Caught gather BaseException descendant:")
+    print_exception(e, file=sys.stdout)
 tps._info("End of uitest_event_loop")

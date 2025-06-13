@@ -3,7 +3,7 @@ import { marked } from "./marked.esm.js";
 console.log("Loading turtleps.js ...");
 
 
-/*
+/**
  * A global mutable config to be shared with python - 
  * Don't like having global stuff but unfortunately as of 2025.3.1 pyscript
  * doesn't allow proper config reload.  
@@ -14,19 +14,28 @@ export let tps_config = {
         
     }
 };
-/*
+/**
  * @since 0.10.0
  */
 export const DAY = 1000*60*60*24; // as milliseconds
-/*
+/**
  * @since 0.10.0
  */
 export const PYSCRIPT_CORE_VERSION = "2025.3.1";
 
-/*  ordered by importance first to last  
+/**  ordered by importance first to last  
     
 */
 export let DEFAULT_OPTIONS = {  s: '',
+                                /**  py: pyodide  mpy: micropython */
+                                t: 'py',  
+                                /** version for everything */
+                                v: 0,       
+                                /** version for code */
+                                vc: 0,
+                                /** run number 
+                                 * @since 0.12.0 */                              
+                                r : 1,
                                 refresh_buttons: true,
                                 /** Suspends execution and shows a big play banner:
                                  * 
@@ -34,7 +43,7 @@ export let DEFAULT_OPTIONS = {  s: '',
                                  *    0: right before executing python
                                  *    1: at the end of first ge_init call
                                  *
-                                 *  ignored when nrun > 1
+                                 *  ignored when r > 1
                                  *
                                  *  @since 0.12.0
                                 */    
@@ -44,18 +53,15 @@ export let DEFAULT_OPTIONS = {  s: '',
                                 navbar: true,   
                                 /** puts control panel high and expands it */
                                 sticky: false,  
-                                show_desc: true,  
+                                show_desc: true,
+                                /** @since 0.12.0 */
+                                show_options: true,
                                 config_url : "pyscript.json",
-                                cache_expiration : DAY * 60,
-                                /**  for everything */
-                                v: 0,       
-                                vc: 0,
-                                /** @since 0.12.0 */                              
-                                nrun : 1
+                                cache_expiration : DAY * 60
                                 // mode: 'dev', // allowed: 'dev' or 'demo' // not neededd for now 
 }
 
-/* @since 0.10.0
+/** @since 0.10.0
 
 Awaits event on given target only *once*
 */
@@ -71,7 +77,7 @@ export async function when(target, event, {
 
 console.log("Patching console.error to catch TPS-STOPEX CancelledError");
 
-/* @since 0.10.0
+/** @since 0.10.0
 */
 let orig_console_error = console.error;
 
@@ -99,7 +105,7 @@ console.error = function(...theArgs){
 
 
 
-/*  
+/**  
     Traces the svg silhouette of the given work_img and puts 
     the result into target node innerHTML
 
@@ -177,45 +183,13 @@ export function vectorize(work_img, target) {
 };
 
 
-/*
-    @since 0.11.0
-*/
-async function show_desc(s){
-            
-        const response = await fetch(s);  // TODO would need version, but I guess it's still good enough
-        
-        if (!response.ok) {
-            console.error("Couldn't fetch test:" + s, response);
-        } else {
-            const t = await response.text();
-            console.debug("response.text() result:", t)
-            const re = /^\s*"""(.*?)"""/gms;
-            let arr = re.exec(t);
-            console.debug('parsed test description:', arr);
-            if (!arr || arr.length < 2) {
-                console.log("Couldn't find test description");
-            } else {
-                const d = arr[1];        
-                //console.debug("DESCRIPTION: ", d);
-                const [title, desc] = sep_title_desc(s, d);
+/** 
+    s: script relative path,  must NOT have parameters
 
-                const st = document.querySelector(".tps-script-title");
-                if (st){
-                    st.innerHTML = `<a href="${s}" target="_blank">${title}</a>`
-                }
-                const sd = document.querySelector(".tps-script-description");
-                if (sd){    
-                    sd.innerHTML = marked.parse(desc);
-                }
-            }
-        }    
-}
-
-/*
    @since 0.11.0
 */
 export function sep_title_desc(s, raw_string){
-    let sname = s.substring("test/".length, s.length - ".py".length); 
+    const sname = s.substring("test/".length, s.length - ".py".length);
     const rsp = raw_string.trim();
     const i = rsp.indexOf('\n'); 
     let title = '';
@@ -235,17 +209,62 @@ export function sep_title_desc(s, raw_string){
     return [title, descr];    
 }
 
+/**
+    @since 0.12.0
+*/
+export async function fetch_title_desc(s){
+    
+    const response = await fetch(s);  // TODO would need version, but I guess it's still good enough
+    
+    let d = '';
+    if (!response.ok) {
+        console.error("Couldn't fetch test:" + s, response);
+    } else {
+        const t = await response.text();
+        const re = /^\s*"""(.*?)"""/gs;
+        let arr = re.exec(t);
+        
+        if (!arr || arr.length < 2) {
+            console.log("Couldn't find test description");    
+        } else {
+            d = arr[1];
+        }
+        
+    }
+    return sep_title_desc(s, d);
+}
+
+
+
+/**
+    @since 0.11.0
+*/
+async function show_desc(s){
+
+    const [title, desc] = await fetch_title_desc(s);
+            
+    const st = document.querySelector(".tps-script-title");
+    if (st){
+        st.innerHTML = `<a href="${s}" target="_blank">${title}</a>`
+    }
+    const sd = document.querySelector(".tps-script-description");
+    if (sd){    
+        sd.innerHTML = marked.parse(desc);
+    }
+
+}
+
 /** 
- * 
+ * r: the run number
  * @since 0.12.0
  */
-export async function show_play_banner(play_banner, nrun){
+export async function show_play_banner(play_banner, r){
     if (play_banner === -1){
         console.debug("play_banner flag is", play_banner, "not showing it");
         return;
     }
-    if ((play_banner >= 0) && (nrun > 1)){
-        console.debug("nrun is", nrun, "not showing play_banner");
+    if ((play_banner >= 0) && (r > 1)){
+        console.debug("r is", r, "not showing play_banner");
         return;
     }
 
@@ -288,7 +307,7 @@ export async function show_play_banner(play_banner, nrun){
 
 }
 
-/* Runs a script given by page parameter s 
+/** Runs a script given by page parameter s 
 
      * !!!!!!!   WARNING    !!!!!!!!
      * 
@@ -310,6 +329,7 @@ export async function run_from_params(){
     
     let game_box = document.getElementById("tps-game-box");
     let msg_box = game_box ? game_box : document.body;
+    let options_box = document.getElementById("tps-options-box");
 
     let s = params.get('s');
     
@@ -402,10 +422,31 @@ export async function run_from_params(){
             await show_desc(s);
         }
     }
+
+    const bold_span = 'style="font-weight:bold"';
+
+    options_box.innerHTML = `
+        <div class="tps-intepreter">
+            <input type="radio" name="tps-interpreter" value="py" ${the_options.t==="py"? "checked" : ""}>
+            <label for="py"><a href="#">pyodide</a></label><span ${the_options.t==="py"? bold_span : ""}>slow loading, supports almost all Python features</span>
+            <input type="radio" name="tps-interpreter" value="mpy" ${the_options.t==="mpy"? "checked" : ""}>
+            <label for="mpy"><a href="#">micropython</a></label><span ${the_options.t==="mpy"? bold_span : ""}>fast loading but supports few Python features (may give weird errors)</span>   
+        </div>
+    `
+    options_box.style.display = the_options.show_options ? "block" : "none";
+
+    const what = the_options.t === "py" ? "mpy" : "py";  
+    let options_box_input = document.querySelector(`#tps-options-box input[value="${what}"]`);
+    let options_box_label = document.querySelector(`#tps-options-box label[for="${what}"]`);
+    const frel = (e) => {reload_page(Object.assign({}, the_options, {t:what}));}    // fresh restart
+    
+    options_box_input.onclick = frel;   
+    options_box_label.onclick = frel;
+
         
     await run(the_options);
 }
-/* 
+/** 
  * Updates ui game status
  * @since 0.10.0
  */
@@ -442,28 +483,30 @@ function update_ui_game_status(game_status){
     
 }
 
-/* @since 0.10.0
+/** @since 0.10.0
 */
 export async function stop_game(options){
     console.log("turtleps.js:  stop_game()");
 
     console.log("Stopping python scripts...");
 
+    let the_options = Object.assign({}, DEFAULT_OPTIONS, options);
+
     const script = document.createElement('script');
-    script.setAttribute("type","py");         
+    script.setAttribute("type",the_options.t);         
     script.textContent = "import turtleps\n"
                         + "turtleps.ge_stop()\n"
     
     const tps_pyscript = document.getElementById("tps-pyscript");
     tps_pyscript.appendChild(script);
-    await when(window, "py:done");
+    await when(window, the_options.t + ":done");
     update_ui_game_status("STOP"); // TODO sync with module
     console.log("turtleps.js:  stop_game() is DONE.");
     
 };
 
 
-/* @since 0.10.0
+/** @since 0.10.0
 */
 export async function play_game(options){
 
@@ -481,22 +524,22 @@ export async function play_game(options){
     console.log("Resetting python memory...");
 
     const script = document.createElement('script');
-    script.setAttribute("type","py");         
+    script.setAttribute("type",the_options.t);         
     script.textContent = "import turtleps\n"
                         + "turtleps.ge_reset()\n"
     
     const tps_pyscript = document.getElementById("tps-pyscript");
     tps_pyscript.appendChild(script);
-    await when(window, "py:done");
+    await when(window, the_options.t + ":done");
     console.log("Going to reload script...", the_options.s);
-    the_options.nrun += 1;
+    the_options.r += 1;
     await run(the_options);
     console.log("turtleps.js:  play_game() is DONE.");
 };
 
 
 
-/* @since 0.10.0
+/** @since 0.10.0
 */
 export async function reload (options){
 
@@ -517,7 +560,7 @@ export async function reload (options){
 };
 
 
-/* @since 0.10.0
+/** @since 0.10.0
 */
 export function reload_all (options){
     console.log("turtleps.js:  reload_all(", options, ")");
@@ -532,12 +575,23 @@ export function reload_all (options){
     }
 
     console.log('options:', options)
-    let the_options = Object.assign({}, DEFAULT_OPTIONS, options, {v:current_time, 
+    let the_options = Object.assign({}, DEFAULT_OPTIONS, options, {v : current_time, 
                                                                    vc: DEFAULT_OPTIONS.vc})
-    the_options.nrun += 1;
+    the_options.r += 1;
 
     console.log('the_options:', the_options)
-    
+
+    reload_page(the_options);
+}
+
+/**
+ * @since 0.12.0 
+ */
+export function reload_page(options){
+    console.log("turtleps.js:  reload_page(", options, ")");
+
+    let the_options = Object.assign({}, DEFAULT_OPTIONS, options);
+
     let ps = '';
     let prev = '';
     for (const key of Object.keys(DEFAULT_OPTIONS)) { // insertion order, thanks to ES2015
@@ -557,7 +611,7 @@ export function reload_all (options){
     window.location.href = new_location;
 }
 
-/* @since 0.10.0
+/** @since 0.10.0
 */
 function determine_timestamp(requested_v, local_v, current_time, cache_expiration){
 
@@ -584,7 +638,7 @@ function determine_timestamp(requested_v, local_v, current_time, cache_expiratio
     return v;
 }
 
-/* @since 0.10.0
+/** @since 0.10.0
 */
 function load_timestamp(what, current_time){
     let local_v;
@@ -604,7 +658,7 @@ function load_timestamp(what, current_time){
     return local_v
 }
 
-/* failed attempt to rewrite config
+/** failed attempt at config rewriting
 
    note to myself: attempted to run a Python script to update files,
    approach seemed to work  but apparently it was generating too many concurrent events
@@ -640,21 +694,36 @@ async function config_overwrite_TODO(wrap, target_config, the_options){
     console.log("!!!!! PROVA END");
 }
 
-/*
+/**
     @since 0.12.0
 */
 function on_py_ready(){ 
+    _on_python_ready('py');
+}
+
+/**
+    @since 0.12.0
+*/
+function on_mpy_ready(){ 
+    _on_python_ready('mpy');
+}
+
+/**
+    @since 0.12.0
+*/
+function _on_python_ready(script_type){ 
+    console.log(script_type + ':ready, updating ui game status...')
+
     const loading  = document.querySelector('#tps-game-box .tps-loading');
     const screen   = document.querySelector('#tps-game-box .tps-screen');
     
-    console.log('py:ready, updating ui game status...')
     loading.style.visibility = 'hidden';
     screen.classList.remove('tps-screen-loading');
     update_ui_game_status("PLAY"); // TODO sync with module
 }
 
 
-/* Runs a script from script_path
+/** Runs a script from script_path
  * 
  * @since 0.9.0
  */
@@ -664,7 +733,7 @@ export async function run(options){
     
     console.log( "Requested running: ", the_options.s, 
                 "\n- at timestamp: ",   the_options.vc,
-                "\n- nrun:",            the_options.nrun);
+                "\n- r:",            the_options.r);
     
     console.log("the_options:", the_options);
 
@@ -737,7 +806,13 @@ export async function run(options){
     
     
     // ECMAScript 6 says it's evaluated only once
-    addEventListener('py:ready', on_py_ready);
+    if (the_options.t === "py"){
+        addEventListener('py:ready', on_py_ready);
+    } else if (the_options.t === "mpy"){
+        addEventListener('mpy:ready', on_mpy_ready);
+    } else {
+        throw new Error("Unrecognized script type:", the_options.t);
+    }
 
 
     the_options.v = determine_timestamp(the_options.v, local_v, current_time, the_options.cache_expiration);
@@ -776,7 +851,7 @@ export async function run(options){
     
     
     const script = document.createElement('script');
-    script.setAttribute("type","py");
+    script.setAttribute("type", the_options.t);
     script.setAttribute("src", the_options.s + "?v=" + the_options.vc);
     
 
@@ -830,7 +905,7 @@ export async function run(options){
         }
         
         if (the_options.play_banner === 0){
-            await show_play_banner(the_options.play_banner, the_options.nrun);
+            await show_play_banner(the_options.play_banner, the_options.r);
             tps_pyscript.replaceChildren(script);
 
         } else {
@@ -845,7 +920,7 @@ export async function run(options){
         import(`https://pyscript.net/releases/${PYSCRIPT_CORE_VERSION}/core.js`)
         .then((pscore) => {
             console.log("pscore:", pscore);
-            if (the_options.nrun === 1){
+            if (the_options.r === 1){
                 // The `hooks.main` attribute defines plugins that run on the main thread.
                 pscore.hooks.main.onReady.add(async (wrap, element) => {
                     console.log("main", "onReady");
@@ -886,9 +961,9 @@ export async function run(options){
     xhttp.open("GET", the_options.config_url); 
     xhttp.responseType = "json";
     xhttp.send();
-    await when(window, "py:ready");
+    await when(window, the_options.t + ":ready");
     console.log("turtleps.js run(): py:ready()");
-    await when(window, "py:done");                                                
+    await when(window, the_options.t + ":done");                                                
     console.log("turtleps.js run() is DONE: script=", the_options.s, "\n - asyncio tasks can still be running...")
 };
 

@@ -2,17 +2,13 @@ import asyncio
 import js
 
 
-try:
-    from typing import Awaitable
-    from uuid import uuid4
-    _system = 'pyodide'
-except ImportError as ie:
-    try:
-        from micropython import const
-        _system = 'micropython'
-    except:
-        raise ie
-        
+if "pyodide" in sys.modules:
+    SYSTEM = "pyodide"
+elif sys.implementation.name == "micropython":
+    SYSTEM = "micropython"
+else:
+    raise Exception("Unknown python platform!")
+
 
 # see https://github.com/CoderDojoTrento/turtle-pyscript/issues/8
 _running_tasks = set()
@@ -25,7 +21,7 @@ def _schedule_task(awaitable):
         if t in _running_tasks:
             _running_tasks.remove(t)
             
-    if _system != "micropython" :
+    if SYSTEM != "micropython" :
         _running_tasks.add(t)
         t.add_done_callback(clean_task) # consider stop
     

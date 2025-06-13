@@ -1,8 +1,11 @@
 """ Stop test
 
-**WARNING**: Going to work forever with `create_task`..
+**WARNING**: Going to work forever with `create_task` (see console)..
 
-If you hit turtleps stop button it should actually stop without errors.
+If you hit turtleps stop button:
+
+- **in pyodide**: it should actually stop without errors.
+- **in micropython**: it keeps counting, don't know why
 
 """
 

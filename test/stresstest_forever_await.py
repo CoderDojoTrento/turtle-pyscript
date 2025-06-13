@@ -1,8 +1,11 @@
 """ Danger forever with while / await
 
-**WARNING**: Going to work forever with `while`/`await` ..
+**WARNING**: Going to work forever with `while`/`await` (see console) ..
 
 If you hit turtleps stop button it should actually stop without errors.
+
+- **in pyodide**: it should actually stop without errors.
+- **in micropython**: it keeps counting, don't know why..
 
 """
 

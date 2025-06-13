@@ -3,7 +3,8 @@
     "files": {
         "turtleps.py" : "",
         "demo/storytelling.py" : "",
-        "test/tps_testing.py" : ""
+        "test/tps_testing.py" : "",
+        "test/upytest.py" : "upytest.py"
       },
     "js_modules": {
       "main": {
@@ -13,9 +14,9 @@
         "js/turtleps.js"               : "turtleps"
       }
     },
-    "packages": ["pytest", "pytest-asyncio"],
+    "packages": [],
     "tps": {
-      
+
     }
 
 }
