@@ -5,7 +5,8 @@
 If you hit turtleps stop button it should actually stop without errors.
 
 - **in pyodide**: it should actually stop without errors.
-- **in micropython**: it keeps counting, don't know why..
+- **in micropython**: it keeps counting because this script doesn't import `turtleps.py`,
+    which would allow micropython tasks tracking.
 
 """
 

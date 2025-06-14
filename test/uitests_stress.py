@@ -2,7 +2,7 @@
 
 ## WARNING: these tests can make your system unresponsive..
 
-It may take sometime to load everything ...
+## See outputs in console.
 
 """
 import sys 

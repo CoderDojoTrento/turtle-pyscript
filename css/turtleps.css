@@ -323,6 +323,11 @@ h2.tps-script-title  {
     color: inherit;
 }
 
+#tps-options-box span a {
+    text-decoration: none;
+    color: inherit;
+}
+
 #tps-options-box input:checked+label{
     font-weight:bold;
 }

@@ -214,7 +214,7 @@ else:
 
     def uuid4():
         """Generates a random UUID compliant to RFC 4122 pg.14"""
-        random = bytearray(os.urandom(16))
+        random = bytearray(urandom(16))
         random[6] = (random[6] & 0x0F) | 0x40
         random[8] = (random[8] & 0x3F) | 0x80
         return UUID(bytes=random)
@@ -229,51 +229,64 @@ else:
         pass
 
 
-    _info("- replacing asyncio.create_task with a shim")
+    _info("- replacing asyncio.core._task_queue with ours (will just forward calls) ...")
 
-    _orig_create_task = asyncio.create_task
+    _orig_asyncio_core_task_queue = asyncio.core._task_queue
 
-    def _turtleps_create_task(coro):
-        """ in theory there is no need to collect reference as micropython works differently
-            but: since micropython doesn't have asyncio.all_tasks() we need references anyway
-            to allow stopping game 
-            
-            @since 0.12.0
+    class TurtlepsTaskQueue:
+        """@since 0.12.2
         """
-        _info("turtleps_create_task shim was called")
-        t = _orig_create_task(coro)
-        _running_tasks.add(t)
-        return t
+        def __init__(self):
+            pass
 
-    asyncio.create_task = _turtleps_create_task
+        def peek(self):
+            _debug("TurtlepsTaskQueue.peek shim was called")
+            return _orig_asyncio_core_task_queue.peek()
 
+        def push(self, v, key=None):
+            _debug("TurtlepsTaskQueue.push shim was called with:", v, "type(v)", type(v))
+            _running_tasks.add(v)
+            _orig_asyncio_core_task_queue.push(v, key)
 
+        def pop(self):
+            _debug("TurtlepsTaskQueue.pop shim was called")
+            
+            v = _orig_asyncio_core_task_queue.pop()
+            if v in _running_tasks: 
+                _running_tasks.remove(v)
+            return v
+
+        def remove(self, v):
+            _debug("TurtlepsTaskQueue.remove shim was called")
+            if v in _running_tasks: 
+                _running_tasks.remove(v)
+            _orig_asyncio_core_task_queue.remove(v)
+
+    asyncio.core._task_queue = TurtlepsTaskQueue()
+
+    
     _info("- replacing asyncio.gather with a shim")
-
-    """
-    Don't know why but cpython works without await, micropython doesn't  
-    unless you wrap the thing with a create_task
-    """
-
+    
     _orig_gather = asyncio.gather
 
     def _turtleps_gather(*awaitables, return_exceptions=False):
-        """ In theory there ino need to collect reference as micropython works differently
-            but we need it collected by patched _turtleps_create_task, see above
+        """ Cpython can kinda work even without await, micropython doesn't  
+            unless you wrap the thing with a create_task
         """
+
         _info("turtleps_gather shim was called")
         return asyncio.create_task(_orig_gather(*awaitables, return_exceptions=return_exceptions))
 
     asyncio.gather = _turtleps_gather
+    
 
-
-    _info("- assigning to asyncio.all_tasks a NON WORKING shim")
+    _info("- creating asyncio.all_tasks shim")
 
     def turtleps_all_tasks():
-        _info("turtleps_all_tasks shim was called, returning _running_tasks")
+        _debug("turtleps_all_tasks shim was called, returning _running_tasks")
 
-        loop = asyncio.get_event_loop()
-        #tasks = loop.runq + loop.waitq   #runq attribute doesn't exist :-/ 
+        #loop = asyncio.get_event_loop()
+        #tasks = loop.runq + loop.waitq   #runq attribute doesn't exist in newer micropython versions :-/ 
         return _running_tasks
 
     asyncio.all_tasks = turtleps_all_tasks
@@ -384,6 +397,7 @@ else:
 
 # see https://github.com/CoderDojoTrento/turtle-pyscript/issues/8
 _running_tasks = set()
+_running_tasks.add(asyncio.current_task())
 
 def _schedule_task(awaitable):
     """
@@ -405,13 +419,15 @@ def _schedule_task(awaitable):
 
 _info('Received pyscript.config:', pprint(pyscript.config))
 
-if SYSTEM != "micropython":
-    _info("- all tasks:")
-    for t in asyncio.all_tasks():
+_info("- all tasks:")
+for t in asyncio.all_tasks():
+    if SYSTEM == "micropython":
+        c = t.coro
+    else:
         c = t.get_coro()
-        _info("  Coroutine:", c.__name__ if c else 'None')
-        _info(" ", t)
-
+    _info("  Coroutine:", c.__name__ if c else 'None')
+    _info("dir(t)", dir(t))
+    _info("dir(c)", dir(c))
 
 #__pragma__ ('skip')
 #document = Math = setInterval = clearInterval = 0
@@ -2337,21 +2353,29 @@ def ge_stop():
     if asyncio.Task:
         _info("Going to cancel tasks...")
         i = 0
-        ct = asyncio.current_task()
-        _debug("ct:", ct)
+        curt = asyncio.current_task()
+        _debug("ct:", curt)
         for task in asyncio.all_tasks():
             _debug("task:", task)
             to_cancel = True
-            if SYSTEM != "micropython":
+            """ commented as in micropython asyncio.gather tasks don't have __name__
+            if SYSTEM == "micropython": 
+                _info('dir(task.coro)', task.coro)
+                tn = task.coro.__name__ if task.coro else ''   
+                curtn = curt.coro.__name__ if curt.coro else ''
+            else:
                 #note:  Pyodide eval_code_async task coro.__name__ are called  'eval_code_async'
-                c = task.get_coro()
-                cn = c.__name__ if c else ''
-                if task.get_name() == ct.get_name(): # can only hope they are ordered in some meaninful way
-                    _info(f"- found current task, skipping: {task}")
-                    to_cancel = False
+                tn = task.get_name()
+                curtn = curt.get_name()
+            """ 
+            if task is curt: # can only hope they are ordered in some meaninful way
+                _info(f"- found current task, skipping: {task}")
+                to_cancel = False
+
             if to_cancel:
                 _info(f'- found task, calling cancel(): {task}')
                 try:
+                    _debug("task, type(task):", task, type(task))
                     if SYSTEM == "micropython":
                         task.cancel()  # doesn't support arg
                     else:
@@ -2407,8 +2431,11 @@ def ge_reset(skip_reload=()):
     to_reload.sort(key=lambda t : t[0])
     if SYSTEM == "micropython":
         print("Detected micropython, repatching asyncio module with original functions")
-        asyncio.create_task = _orig_create_task
-        asyncio.gather = _orig_gather
+        
+        asyncio.gather      = _orig_gather
+
+        asyncio.core._task_queue = _orig_asyncio_core_task_queue
+
         
     to_skip.sort(key=lambda t : t[0])
     print(f"pyscript_files to SKIP:  {[n for n,m in to_skip]}")

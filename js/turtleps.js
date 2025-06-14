@@ -389,7 +389,7 @@ export async function run_from_params(){
         console.log("Found uitests suite, making sticky.");    
         the_options.sticky = true;
         the_options.show_game = false;
-    } else if (s.includes("/uitest_") || subdir == "demo") {
+    } else if (s.includes("/uitest_") || s.includes("/stresstest_") ||subdir == "demo") {
         if (!the_options.show_desc){
             console.debug("show_desc is false, skipping description.");    
         } else {
@@ -428,9 +428,9 @@ export async function run_from_params(){
     options_box.innerHTML = `
         <div class="tps-intepreter">
             <input type="radio" name="tps-interpreter" value="py" ${the_options.t==="py"? "checked" : ""}>
-            <label for="py"><a href="#">pyodide</a></label><span ${the_options.t==="py"? bold_span : ""}>slow loading, supports almost all Python features</span>
+            <label for="py"><a href="#">pyodide</a></label><span ${the_options.t==="py"? bold_span : ""}><a href="#">slow loading, supports almost all Python features</a></span>
             <input type="radio" name="tps-interpreter" value="mpy" ${the_options.t==="mpy"? "checked" : ""}>
-            <label for="mpy"><a href="#">micropython</a></label><span ${the_options.t==="mpy"? bold_span : ""}>fast loading but supports few Python features (may give weird errors)</span>   
+            <label for="mpy"><a href="#">micropython</a></label><span ${the_options.t==="mpy"? bold_span : ""}><a href="#">fast loading but supports few Python features (may give weird errors)</a></span>
         </div>
     `
     options_box.style.display = the_options.show_options ? "block" : "none";
@@ -438,10 +438,14 @@ export async function run_from_params(){
     const what = the_options.t === "py" ? "mpy" : "py";  
     let options_box_input = document.querySelector(`#tps-options-box input[value="${what}"]`);
     let options_box_label = document.querySelector(`#tps-options-box label[for="${what}"]`);
+    let options_box_span = document.querySelector(`#tps-options-box label[for="${what}"] + span`);
+
     const frel = (e) => {reload_page(Object.assign({}, the_options, {t:what}));}    // fresh restart
     
     options_box_input.onclick = frel;   
     options_box_label.onclick = frel;
+    options_box_span.onclick = frel;
+    
 
         
     await run(the_options);

@@ -1,7 +1,11 @@
 """ Stop test with properly awaited gather 
 
-Note to really stop pyodide it would need to be in a worker:
-https://pyodide.org/en/stable/usage/keyboard-interrupts.html
+Automatically stops by calling `ge_stop()` after a 3 seconds
+
+Should work both in pyodide and micropython
+
+Note to really stop pyodide it would need to be [in a worker](
+https://pyodide.org/en/stable/usage/keyboard-interrupts.html)
 
 TODO CHECK: 
 https://stackoverflow.com/questions/73051054/python-threading-how-to-interrupt-the-main-thread-and-make-it-do-something-else

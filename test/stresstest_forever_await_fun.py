@@ -1,11 +1,13 @@
-""" Stop test
+""" Forever while await in a function
 
 **WARNING**: Going to work forever with `create_task` (see console)..
+
 
 If you hit turtleps stop button:
 
 - **in pyodide**: it should actually stop without errors.
-- **in micropython**: it keeps counting, don't know why
+- **in micropython**: it keeps counting because this script doesn't import `turtleps.py`,
+    which would allow micropython tasks tracking.  
 
 """
 
