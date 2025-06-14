@@ -547,30 +547,45 @@ _CFG = {"width" : 400, # 0.5,               # Screen
 
 _ns = 'http://www.w3.org/2000/svg'
 
+# this is a better version BUT  in MicroPython using len() gives # object of type 'JsProxy' has no len()
+"""
+_all_svgs = document.querySelectorAll('.tps-screen');
 
-_svg = document.querySelector('#tps-game-box .tps-screen');
+if len(_all_svgs) == 1:
+    _svg = _all_svgs[0]
+elif len(_all_svgs) > 1:
+    _error("FOUND MULTIPLE ELEMENTS WITH .tps-screen CLASS, THERE SHOULD BE ONLY ONE: PICKING THE FIRST...")
+    _svg = _all_svgs[0]
+else:
+    _svg = None
+"""
+
+# so let's keep it simple for now:
+
+_svg = document.querySelector('.tps-screen');
+
 if _svg:
     _info("Found existing svg, cleaning content..", _svg, c=True)
     _svg.replaceChildren()
 else:
     _svg = document.createElementNS (_ns, 'svg')
     _info("Adding new svg", _svg, "to body", c=True)
+    _svg.classList.add("tps-screen")
     document.body.appendChild (_svg)
-
-_svg.classList.add("tps-screen")
+ 
 
 
 _silhouettes = document.createElementNS(_ns, 'g')
 _silhouettes.setAttribute('class', 'tps-silhouettes')
 
 _defs = document.createElementNS (_ns, 'defs')
-_defs.setAttributeNS(None, 'id', 'defs')
+_defs.setAttributeNS(None, 'class', 'tps-defs')
 _defs.appendChild(_silhouettes)
 _svg.appendChild(_defs)
 
 # so we can at least define z-order of turtles
 _svg_sprites = document.createElementNS (_ns, 'g')
-_svg_sprites.setAttribute('class', 'sprites')
+_svg_sprites.setAttribute('class', 'tps-sprites')
 _svg.appendChild(_svg_sprites)
 
 _svg_comics = document.createElementNS (_ns, 'g')
@@ -719,9 +734,16 @@ class Shape(object):
             #img.setAttributeNS(None, 'width', 20)
             #img.setAttributeNS(None, 'height', 20)
             #img.setAttributeNS(None, 'xlink:href', name)  # doesn't like it
+
+            # using our mirrored global config as unfortunately Pyscript doesn't support changing config between runs
+    
+            if hasattr(tpsjs, "tps_config") and hasattr(tpsjs.tps_config, "tps") and hasattr(tpsjs.tps_config.tps, "v"):
+                v = tpsjs.tps_config.tps.v
+                _debug("!!!!!! updating v", v)
+                new_data = _version_url(data, v)
+            else:
+                new_data = data
             
-            v = pyscript.config["tps"]["v"]
-            new_data = _version_url(data, v)
             
             img.setAttributeNS(None, 'href', new_data)
             
@@ -1076,7 +1098,7 @@ class _Screen:
             if sid in sids:
                 raise CDTNException(f"Tried to register image \n{sid}\nwith sanitized id\n{sid}\nbut another image\n{sids[sid]}\nalready has the same sanitized id!")
 
-        defs = self.svg.getElementById("defs")
+        defs = self.svg.querySelector(".tps-defs")
         
 
 
@@ -2299,7 +2321,7 @@ def ge_stop():
     _svg.onclick = None
     
     _info("unregistering svg onclick callbacks:")
-    sprites = _svg.querySelector('#tps-game-box .sprites')
+    sprites = _svg.querySelector('.tps-screen .tps-sprites')
     if sprites:
         for el in sprites.children:
             _info(f"- {el.id}")
@@ -2354,7 +2376,7 @@ def ge_reset(skip_reload=()):
     """
     print("ge_reset(): BEGINNING")
     print("Resetting SVG...");
-    svg = document.querySelector('#tps-game-box svg.tps-screen')
+    svg = document.querySelector('.tps-screen')
     if svg:
         svg.replaceChildren();
     print("Removing error messages..")
@@ -2427,8 +2449,10 @@ async def ge_init():
     play_banner_button = document.querySelector('#tps-game-box .tps-play-banner');
     play_button = document.querySelector('#tps-game-box .tps-play');
 
-    loading.style.visibility = 'visible';
-    play_banner_button.style.visibility = 'hidden';
+    if loading:
+        loading.style.visibility = 'visible';
+    if play_banner_button:
+        play_banner_button.style.visibility = 'hidden';
 
     hideturtle()  # dont need it in most games..    
 
@@ -2446,7 +2470,8 @@ async def ge_init():
 
     _ge_loaded = True
 
-    loading.style.visibility = 'hidden';
+    if loading:
+        loading.style.visibility = 'hidden';
 
 
     failed = [shape.svg.getAttribute("data-cdtn-orig-href") for sname, shape in Sprite._screen._shapes.items() if shape.status == Resource.FAILED]
@@ -2457,15 +2482,16 @@ async def ge_init():
             _error(fail)
 
     # using our mirrored global config as unfortunately Pyscript doesn't support changing config between runs
-    if SYSTEM == 'pyodide':
-        obm = tpsjs.tps_config.tps.as_object_map()
-    else:
-        obm = tpsjs.tps_config.tps
- 
-    play_banner = obm["play_banner"]
-    r = obm["r"]
-    if play_banner == 1:
-        await tpsjs.show_play_banner(play_banner, r); 
+    
+    if hasattr(tpsjs, "tps_config") and hasattr(tpsjs.tps_config, "tps"):
+        obm = tpsjs.tps_config.tps # .as_object_map()
+        if hasattr(obm, "play_banner"): # in obm:
+            play_banner = obm.play_banner
+            r = obm.r if hasattr(obm, "r") else 0
+            if play_banner == 1:
+                await tpsjs.show_play_banner(play_banner, r); 
+
+    
 
     _info("- ge_init is done!")
 

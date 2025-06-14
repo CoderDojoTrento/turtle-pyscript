@@ -1,0 +1,66 @@
+<!doctype html>
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <link rel="stylesheet" href="https://pyscript.net/releases/2025.3.1/core.css">
+        <link rel="stylesheet" href="./css/turtleps.css" />
+        <script type="module" src="https://pyscript.net/releases/2025.3.1/core.js"></script>
+        <script type="module" src="js/turtleps.js"></script>
+    </head>
+
+    <body>
+        <nav id="tps-navbar">
+            <div class="tps-app-header">
+                <a href="/">
+                </a>
+                <a class="tps-title">Turtle Pyscript minimal example</a>
+            </div>
+        </nav>
+        
+        <div style="display:flex; justify-content: center;">
+
+            <div style="max-width:60%;">
+            <p>This is a <strong>minimal</strong> page which follows closely <a href="https://docs.pyscript.net/2025.3.1/beginning-pyscript/" target="_blank">pyscript standard example</a>,
+                running directly <a href="demo/min_main.py" target="_blank">demo/min_main.py</a></code> 
+            </p>
+
+            <p>It's useful if you plan to integrate turtleps into a page with your own play buttons / logic.
+            </p>
+
+
+            <p>To make this work you only need to include as extra <code>turtleps.js</code> 
+                which acts just as a collection of functions (doesn't initiate any code run on its own).
+            </p>
+             <p>You don't need to call turtlejs <code>run()</code>, nor it's mandatory to place a <code>#tps-game-box</code> div. 
+                
+            </p>
+
+            
+            
+            <p><strong>Missing features in minimal example</strong> </p>
+            <p> Since this is a minimal example which doesn't use any of <code>turtleps.js</code>
+                features to ease development, there are:
+                <br>
+                
+                <ul>
+                    <li>no loading panel</li>
+                    <li>no run/stop/reload buttons</li>
+                    <li>no managed caching with url versioning</li>
+                    <li>no url parameter parsing for options</li>
+                    <li>no display of python markdown module docs</li>
+                    
+                </ul> 
+            </p>    
+
+
+            <svg class="tps-screen"></svg>
+
+        </div>
+
+        <script type="py" src="./demo/min_main.py" config="./pyscript.json"></script>
+
+    </body>
+
+</html>
